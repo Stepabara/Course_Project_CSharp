@@ -1,0 +1,285 @@
+@model GeekTour.Web.Models.ViewModels.LocationEditViewModel
+@using GeekTour.Web.Models.Enums
+@{
+    ViewData["Title"] = $"Редактирование — {Model.Name}";
+    var fandoms = ViewBag.Fandoms as List<Fandom> ?? new List<Fandom>();
+    var categories = ViewBag.Categories as List<Category> ?? new List<Category>();
+    var selectedFandomIds = Model.FandomIds ?? new List<int>();
+    var returnUrl = Context.Request.Query["returnUrl"].FirstOrDefault() ?? Url.Action("Index", "Location");
+    var isFromAdmin = returnUrl.Contains("Admin/Locations") || Context.Request.Headers["Referer"].ToString().Contains("Admin/Locations");
+    Layout = isFromAdmin ? "~/Views/Admin/_AdminLayout.cshtml" : "_Layout";
+
+    var dayKeys = new[] { "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday" };
+    var dayLabels = new Dictionary<string, string> {
+        {"monday","Пн"}, {"tuesday","Вт"}, {"wednesday","Ср"},
+        {"thursday","Чт"}, {"friday","Пт"}, {"saturday","Сб"}, {"sunday","Вс"}
+    };
+    Dictionary<string, string>? wh = null;
+    try { if (!string.IsNullOrEmpty(Model.WorkingHoursJson)) wh = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Model.WorkingHoursJson); } catch { }
+}
+
+@if (isFromAdmin)
+{
+    <div class="admin-page-header">
+        <h1><i class="fas fa-edit"></i> @Model.Name</h1>
+    </div>
+}
+else
+{
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Location" asp-action="Index">Заведения</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Location" asp-action="Details" asp-route-id="@Model.Id">@Model.Name</a></li>
+            <li class="breadcrumb-item active">Редактирование</li>
+        </ol>
+    </nav>
+    <h1 class="mb-4"><i class="fas fa-edit"></i> Редактирование заведения</h1>
+}
+
+<form method="post" action="/Location/Edit" id="editForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <input type="hidden" name="returnUrl" value="@returnUrl" />
+    <input type="hidden" name="WorkingHoursJson" id="whJson" value="@Model.WorkingHoursJson" />
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Main -->
+            <div class="card mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Основная информация</h5></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label fw-bold">Название <span class="text-danger">*</span></label>
+                        <input asp-for="Name" class="form-control" placeholder="Название заведения" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label fw-bold">Описание</label>
+                        <textarea asp-for="Description" class="form-control" rows="4" placeholder="Опишите заведение..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Type" class="form-label fw-bold">Тип <span class="text-danger">*</span></label>
+                            <select asp-for="Type" class="form-select" asp-items="Html.GetEnumSelectList<LocationType>()"></select>
+                            <span asp-validation-for="Type" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="CategoryId" class="form-label fw-bold">Категория <span class="text-danger">*</span></label>
+                            <select asp-for="CategoryId" class="form-select">
+                                <option value="">-- Выберите --</option>
+                                @foreach (var c in categories)
+                                {
+                                    <option value="@c.Id" selected="@(Model.CategoryId == c.Id)">@c.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="CategoryId" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Fandoms -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Фандомы</label>
+                        <div class="fandom-grid">
+                            @foreach (var f in fandoms)
+                            {
+                                <label class="fandom-chip">
+                                    <input type="checkbox" name="FandomIds" value="@f.Id" @(selectedFandomIds.Contains(f.Id) ? "checked" : "") />
+                                    <span>@f.Name</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Address -->
+            <div class="card mb-4">
+                <div class="card-header bg-white"><h5 class="mb-0">Адрес и координаты</h5></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Address" class="form-label fw-bold">Адрес <span class="text-danger">*</span></label>
+                        <input asp-for="Address" class="form-control" placeholder="Полный адрес" />
+                        <span asp-validation-for="Address" class="text-danger small"></span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Latitude" class="form-label fw-bold">Широта</label>
+                            <input asp-for="Latitude" class="form-control" type="number" step="any" placeholder="53.9045" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Longitude" class="form-label fw-bold">Долгота</label>
+                            <input asp-for="Longitude" class="form-control" type="number" step="any" placeholder="27.5615" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Working Hours -->
+            <div class="card mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Часы работы</h5>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-dark" onclick="fillAllDays()"><i class="fas fa-copy me-1"></i>Пн-Вс</button>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown"><i class="fas fa-magic me-1"></i>Шаблон</button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="applyWh('09:00','18:00');return false;">Офис (9-18)</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="applyWh('10:00','22:00');return false;">Магазин (10-22)</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="applyWh('12:00','02:00');return false;">Клуб (12-02)</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="applyClosed();return false;">Закрыто</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @foreach (var day in dayKeys)
+                    {
+                        var values = wh != null && wh.TryGetValue(day, out var v) ? v.Split('-') : new[] { "09:00", "18:00" };
+                        var openVal = values.Length > 0 ? values[0] : "09:00";
+                        var closeVal = values.Length > 1 ? values[1] : "18:00";
+                        var isClosed = openVal == "closed";
+                        <div class="wh-row">
+                            <div class="wh-day">
+                                <span class="fw-semibold">@dayLabels[day]</span>
+                                <div class="form-check form-switch ms-2">
+                                    <input class="form-check-input" type="checkbox" id="wh-on-@day" checked="@(!isClosed)" onchange="toggleWhDay('@day')" />
+                                    <label class="form-check-label small" id="wh-lbl-@day" for="wh-on-@day">@(isClosed ? "Закрыто" : "Открыто")</label>
+                                </div>
+                            </div>
+                            <div class="wh-inputs" id="wh-inp-@day" style="@(isClosed ? "display:none" : "")">
+                                <input type="time" class="form-control" value="@openVal" id="wh-open-@day" onchange="syncWh()" />
+                                <span class="text-muted">—</span>
+                                <input type="time" class="form-control" value="@closeVal" id="wh-close-@day" onchange="syncWh()" />
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card mb-4 sticky-top" style="top: @(isFromAdmin ? "88px" : "20px"); z-index: 100;">
+                <div class="card-body">
+                    <h5 class="card-title">Публикация</h5>
+                    <div class="form-check form-switch mb-3">
+                        <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                        <label asp-for="IsActive" class="form-check-label fw-bold">Активно</label>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-dark"><i class="fas fa-save me-1"></i>Сохранить</button>
+                        <a href="@returnUrl" class="btn btn-outline-secondary"><i class="fas fa-times me-1"></i>Отмена</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4 border-danger">
+                <div class="card-header bg-danger text-white"><h6 class="mb-0">Опасная зона</h6></div>
+                <div class="card-body">
+                    <p class="small text-muted">Удаление необратимо. Все отзывы, акции и события будут удалены.</p>
+                    <button type="button" class="btn btn-outline-danger w-100" onclick="document.getElementById('deleteForm').submit();"><i class="fas me-1 fa-trash"></i>Удалить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Styles {
+    <style>
+        /* Fandom chips grid */
+        .fandom-grid {
+            display: flex; flex-wrap: wrap; gap: 8px;
+        }
+        .fandom-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px; border: 1px solid var(--color-border);
+            border-radius: 20px; cursor: pointer; font-size: 0.85rem;
+            transition: all 0.15s ease; user-select: none; margin: 0;
+        }
+        .fandom-chip:hover { border-color: #999; background: var(--color-bg); }
+        .fandom-chip input[type="checkbox"] { display: none; }
+        .fandom-chip:has(input:checked) {
+            background: var(--color-black); color: #fff; border-color: var(--color-black);
+        }
+
+        /* Working hours */
+        .wh-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 6px 0; border-bottom: 1px solid var(--color-border);
+        }
+        .wh-row:last-child { border-bottom: none; }
+        .wh-day { display: flex; align-items: center; min-width: 140px; gap: 8px; }
+        .wh-inputs { display: flex; align-items: center; gap: 6px; }
+        .wh-inputs input[type="time"] { width: 100px; height: 34px; padding: 0 8px; font-size: 0.85rem; }
+    </style>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Fandoms — no JS needed, pure CSS chips
+
+        // Working hours
+        function toggleWhDay(d) {
+            const on = document.getElementById('wh-on-' + d).checked;
+            document.getElementById('wh-inp-' + d).style.display = on ? '' : 'none';
+            document.getElementById('wh-lbl-' + d).textContent = on ? 'Открыто' : 'Закрыто';
+            syncWh();
+        }
+        function syncWh() {
+            const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+            const r = {};
+            days.forEach(d => {
+                const on = document.getElementById('wh-on-' + d).checked;
+                if (!on) r[d] = 'closed';
+                else r[d] = document.getElementById('wh-open-' + d).value + '-' + document.getElementById('wh-close-' + d).value;
+            });
+            document.getElementById('whJson').value = JSON.stringify(r);
+        }
+        function fillAllDays() {
+            const o = document.getElementById('wh-open-monday').value;
+            const c = document.getElementById('wh-close-monday').value;
+            ['tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(d => {
+                document.getElementById('wh-on-' + d).checked = true;
+                document.getElementById('wh-inp-' + d).style.display = '';
+                document.getElementById('wh-lbl-' + d).textContent = 'Открыто';
+                document.getElementById('wh-open-' + d).value = o;
+                document.getElementById('wh-close-' + d).value = c;
+            });
+            syncWh();
+        }
+        function applyWh(o, c) {
+            ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(d => {
+                document.getElementById('wh-on-' + d).checked = true;
+                document.getElementById('wh-inp-' + d).style.display = '';
+                document.getElementById('wh-lbl-' + d).textContent = 'Открыто';
+                document.getElementById('wh-open-' + d).value = o;
+                document.getElementById('wh-close-' + d).value = c;
+            });
+            syncWh();
+        }
+        function applyClosed() {
+            ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(d => {
+                document.getElementById('wh-on-' + d).checked = false;
+                document.getElementById('wh-inp-' + d).style.display = 'none';
+                document.getElementById('wh-lbl-' + d).textContent = 'Закрыто';
+            });
+            syncWh();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            syncWh();
+        });
+    </script>
+}
+
+<!-- Delete form — placed outside the main edit form -->
+<form id="deleteForm" method="post" action="/Location/Delete" style="display:none;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" value="@Model.Id" />
+    <input type="hidden" name="returnUrl" value="@returnUrl" />
+</form>

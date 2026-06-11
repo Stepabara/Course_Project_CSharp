@@ -1,0 +1,76 @@
+@model List<GeekTour.Web.Models.Entities.Review>
+@{
+    ViewData["Title"] = "Модерация";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="admin-page-header">
+    <h1>Модерация отзывов</h1>
+    <p>Отзывы, ожидающие проверки: @Model.Count</p>
+</div>
+
+@if (Model.Any())
+{
+    <div class="row g-4">
+        @foreach (var review in Model)
+        {
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>@(review.User?.Name ?? "Неизвестный")</strong>
+                            <span class="text-muted mx-1">→</span>
+                            <span>@(review.Location?.Name ?? "—")</span>
+                        </div>
+                        <small class="text-muted">@review.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <span class="rating-stars">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <i class="fa-star @(i <= review.Rating ? "fas" : "far")"></i>
+                                }
+                            </span>
+                            <span class="ms-1 badge bg-dark">@review.Rating / 5</span>
+                        </div>
+                        <p class="card-text">@review.Text</p>
+                        @if (!string.IsNullOrEmpty(review.PhotoPaths))
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var photo in review.PhotoPaths.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                                {
+                                    <img src="@photo" alt="Фото" class="rounded" style="max-height: 100px; object-fit: cover;" />
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="card-footer d-flex justify-content-end gap-2">
+                        <form method="post" asp-controller="Review" asp-action="Moderate">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="reviewId" value="@review.Id" />
+                            <input type="hidden" name="approve" value="true" />
+                            <button type="submit" class="btn btn-dark"><i class="fas fa-check me-1"></i>Одобрить</button>
+                        </form>
+                        <form method="post" asp-controller="Review" asp-action="Moderate">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="reviewId" value="@review.Id" />
+                            <input type="hidden" name="approve" value="false" />
+                            <button type="submit" class="btn btn-outline-dark"><i class="fas fa-times me-1"></i>Отклонить</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="admin-empty-state">
+            <i class="fas fa-check-circle"></i>
+            <h4>Нет отзывов на модерации</h4>
+            <p>Все отзывы проверены и одобрены</p>
+        </div>
+    </div>
+}

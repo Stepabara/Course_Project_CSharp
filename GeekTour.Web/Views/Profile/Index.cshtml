@@ -1,0 +1,87 @@
+@model GeekTour.Web.Controllers.ProfileViewModel
+@using GeekTour.Web.Models.Enums
+@{
+    ViewData["Title"] = "Профиль";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card" style="border-radius: 16px; border-color: #E0E0E0;">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="header-user-avatar mx-auto mb-3" style="width:80px;height:80px;font-size:2rem;">
+                            @Model.Name.Substring(0, 1).ToUpper()
+                        </div>
+                        <h4 class="fw-bold mb-1">@Model.Name</h4>
+                        <span class="badge role-@Model.Role.ToString().ToLower()">@GetRoleName(Model.Role)</span>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-4">
+                            <div class="stats-card text-center">
+                                <div class="stats-value">@Model.LocationCount</div>
+                                <div class="stats-label">Заведений</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stats-card text-center">
+                                <div class="stats-value">@Model.RouteCount</div>
+                                <div class="stats-label">Маршрутов</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stats-card text-center">
+                                <div class="stats-value">@Model.ReviewCount</div>
+                                <div class="stats-label">Отзывов</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Edit form -->
+                    <form method="post" asp-action="Update">
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Имя</label>
+                            <input type="text" class="form-control" name="name" value="@Model.Name" required maxlength="100" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Email</label>
+                            <input type="email" class="form-control" name="email" value="@Model.Email" required maxlength="256" />
+                        </div>
+
+                        @if (Model.Role == UserRole.Partner)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Компания</label>
+                                <input type="text" class="form-control" name="companyName" value="@Model.CompanyName" maxlength="200" placeholder="Название компании" />
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Дата регистрации</label>
+                            <input type="text" class="form-control" value="@Model.RegisteredAt.ToString("dd.MM.yyyy")" disabled />
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-dark"><i class="fas fa-save me-1"></i>Сохранить изменения</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetRoleName(UserRole role) => role switch
+    {
+        UserRole.Admin => "Администратор",
+        UserRole.Partner => "Партнёр",
+        UserRole.Tourist => "Турист",
+        _ => role.ToString()
+    };
+}

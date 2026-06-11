@@ -1,0 +1,265 @@
+@model List<GeekTour.Web.Models.ViewModels.LocationListViewModel>
+@using GeekTour.Web.Models.Entities
+@using GeekTour.Web.Models.Enums
+@{
+    ViewData["Title"] = "Главная";
+    var allFandoms = ViewBag.Fandoms as List<Fandom> ?? new List<Fandom>();
+    var allCategories = ViewBag.Categories as List<Category> ?? new List<Category>();
+}
+
+<div class="home-layout">
+    <!-- Filters sidebar -->
+    <aside class="home-sidebar" id="homeSidebar">
+        <div class="home-sidebar-header">
+            <h5><i class="fas fa-filter"></i> Фильтры</h5>
+            <button type="button" class="btn btn-sm btn-outline-dark" id="sidebarResetBtn" onclick="resetAllFilters()" style="display:none;">
+                <i class="fas fa-times"></i> Сбросить
+            </button>
+        </div>
+        <div class="home-filter-group">
+            <label class="form-label">Поиск</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchInput" class="form-control" placeholder="Название, адрес..."
+                       value="@Context.Request.Query["SearchQuery"]" />
+            </div>
+        </div>
+        <div class="home-filter-group">
+            <label class="form-label">Тип</label>
+            <select id="typeFilter" class="form-select">
+                <option value="" selected>Все типы</option>
+                @foreach (var t in Enum.GetValues<LocationType>())
+                {
+                    <option value="@((int)t)">@GetLocationTypeName(t)</option>
+                }
+            </select>
+        </div>
+        <div class="home-filter-group">
+            <label class="form-label">Фандом</label>
+            <select id="fandomFilter" class="form-select">
+                <option value="" selected>Все фандомы</option>
+                @foreach (var fandom in allFandoms)
+                {
+                    <option value="@fandom.Id">@fandom.Name</option>
+                }
+            </select>
+        </div>
+        <div class="home-filter-group">
+            <label class="form-label">Категория</label>
+            <select id="categoryFilter" class="form-select">
+                <option value="" selected>Все категории</option>
+                @foreach (var cat in allCategories)
+                {
+                    <option value="@cat.Id">@cat.Name</option>
+                }
+            </select>
+        </div>
+        <div class="home-filter-group">
+            <label class="form-label">Мин. рейтинг</label>
+            <select id="ratingFilter" class="form-select">
+                <option value="" selected>Любой</option>
+                <option value="4">4+</option>
+                <option value="4.5">4.5+</option>
+            </select>
+        </div>
+        <div class="home-filter-group">
+            <label class="form-label">Сортировка</label>
+            <select id="sortFilter" class="form-select">
+                <option value="rating">По рейтингу</option>
+                <option value="name">По названию</option>
+                <option value="newest">Новые</option>
+            </select>
+        </div>
+        <button type="button" class="btn btn-dark w-100 mt-3" onclick="applyFilters()">
+            <i class="fas fa-search"></i> Применить
+        </button>
+    </aside>
+
+    <!-- Map area -->
+    <div class="home-map">
+        <div id="map"></div>
+        <div class="home-map-counter">
+            <span class="badge bg-dark" id="locCount">@Model.Count</span> заведений
+        </div>
+        <button type="button" class="btn btn-dark btn-sm" id="resetFiltersBtn" style="position:absolute;top:12px;right:12px;z-index:1000;display:none;" onclick="resetAllFilters()">
+            <i class="fas fa-times"></i> Сбросить фильтры
+        </button>
+    </div>
+</div>
+
+<div id="loadingOverlay" style="display:none;position:fixed;top:72px;left:0;right:0;bottom:0;background:rgba(255,255,255,0.7);z-index:999;align-items:center;justify-content:center;">
+    <div class="spinner-border text-dark" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        .home-layout { display:flex; height:calc(100vh - 72px); overflow:hidden; }
+        .home-sidebar { width:280px; min-width:280px; background:#fff; border-right:1px solid #E0E0E0; padding:24px; overflow-y:auto; }
+        .home-sidebar-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+        .home-sidebar-header h5 { font-family:'Montserrat',sans-serif; font-weight:700; margin:0; }
+        .home-filter-group { margin-bottom:16px; }
+        .home-filter-group .form-label { font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:#666; margin-bottom:6px; }
+        .home-map { flex:1; position:relative; }
+        #map { width:100%; height:100%; z-index:1; }
+        .home-map-counter { position:absolute; bottom:16px; left:16px; z-index:1000; }
+        .home-map-counter .badge { font-size:0.9rem; padding:8px 14px; }
+        @@media(max-width:767.98px) {
+            .home-layout { flex-direction:column; height:auto; }
+            .home-sidebar { width:100%; min-width:auto; border-right:none; border-bottom:1px solid #E0E0E0; padding:16px; }
+            .home-map { height:70vh; }
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map — Минск
+        var map = L.map('map').setView([53.9045, 27.5615], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        var markers = [];
+        var markerMap = {};
+        var totalLocationsCount = @Model.Count;
+
+        // Load initial locations from server-rendered data
+        var initialLocations = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(l => new { l.Id, l.Name, l.Latitude, l.Longitude, l.AverageRating, l.Type })));
+
+        function typeEmoji(type) { return type === 0 ? '🍜' : type === 1 ? '🛒' : '🎨'; }
+
+        function buildPopup(loc) {
+            var id = loc.id || loc.Id;
+            var name = loc.name || loc.Name;
+            var type = loc.type !== undefined ? loc.type : loc.Type;
+            var rating = loc.averageRating !== undefined ? loc.averageRating : loc.AverageRating;
+            return '<b>' + typeEmoji(type) + ' ' + name + '</b><br>' +
+                'Рейтинг: ' + Number(rating).toFixed(1) + ' ⭐<br>' +
+                '<a href="/Location/Details/' + id + '" class="btn btn-sm btn-dark mt-1" style="text-decoration:none;">Подробнее</a>';
+        }
+
+        function clearMarkers() {
+            markers.forEach(function(m) { map.removeLayer(m); });
+            markers = [];
+            markerMap = {};
+        }
+
+        function addMarkers(locations) {
+            clearMarkers();
+            var bounds = L.latLngBounds();
+            var count = 0;
+            locations.forEach(function(loc) {
+                var lat = loc.latitude || loc.Latitude;
+                var lng = loc.longitude || loc.Longitude;
+                if (!lat || !lng) return;
+                var marker = L.marker([lat, lng]).addTo(map).bindPopup(buildPopup(loc));
+                markers.push(marker);
+                markerMap[loc.id || loc.Id] = marker;
+                bounds.extend([lat, lng]);
+                count++;
+            });
+            if (markers.length > 0) map.fitBounds(bounds, { padding: [40, 40] });
+            else map.setView([53.9045, 27.5615], 12);
+            return count;
+        }
+
+        // Initial markers
+        addMarkers(initialLocations);
+
+        function focusLocation(id, lat, lng) {
+            var marker = markerMap[id];
+            if (marker) { map.setView([lat, lng], 15); marker.openPopup(); }
+        }
+
+        function hasActiveFilters() {
+            return document.getElementById('searchInput').value !== ''
+                || document.getElementById('typeFilter').value !== ''
+                || document.getElementById('fandomFilter').value !== ''
+                || document.getElementById('categoryFilter').value !== ''
+                || document.getElementById('ratingFilter').value !== ''
+                || document.getElementById('sortFilter').value !== 'rating';
+        }
+
+        function updateResetButtons() {
+            var mapBtn = document.getElementById('resetFiltersBtn');
+            var sideBtn = document.getElementById('sidebarResetBtn');
+            if (hasActiveFilters()) {
+                if (mapBtn) mapBtn.style.display = 'block';
+                if (sideBtn) sideBtn.style.display = 'block';
+            } else {
+                if (mapBtn) mapBtn.style.display = 'none';
+                if (sideBtn) sideBtn.style.display = 'none';
+            }
+        }
+
+        function applyFilters() {
+            var params = new URLSearchParams();
+            var search = document.getElementById('searchInput').value.trim();
+            var type = document.getElementById('typeFilter').value;
+            var fandom = document.getElementById('fandomFilter').value;
+            var category = document.getElementById('categoryFilter').value;
+            var rating = document.getElementById('ratingFilter').value;
+            var sort = document.getElementById('sortFilter').value;
+            if (search) params.set('searchQuery', search);
+            if (type) params.set('type', type);
+            if (fandom) params.set('fandomId', fandom);
+            if (category) params.set('categoryId', category);
+            if (rating) params.set('minRating', rating);
+            if (sort && sort !== 'rating') params.set('sortBy', sort);
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            fetch('/Home/GetFilteredLocations?' + params.toString())
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var count = addMarkers(data);
+                    document.getElementById('locCount').textContent = count;
+                    updateResetButtons();
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                })
+                .catch(function(err) { console.error('Filter error:', err); document.getElementById('loadingOverlay').style.display = 'none'; });
+        }
+
+        function resetAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('typeFilter').value = '';
+            document.getElementById('fandomFilter').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('ratingFilter').value = '';
+            document.getElementById('sortFilter').value = 'rating';
+            var mapBtn = document.getElementById('resetFiltersBtn');
+            var sideBtn = document.getElementById('sidebarResetBtn');
+            if (mapBtn) mapBtn.style.display = 'none';
+            if (sideBtn) sideBtn.style.display = 'none';
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            fetch('/Home/GetFilteredLocations')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var count = addMarkers(data);
+                    document.getElementById('locCount').textContent = count;
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                })
+                .catch(function(err) { console.error('Reset error:', err); document.getElementById('loadingOverlay').style.display = 'none'; });
+        }
+
+        document.getElementById('searchInput').addEventListener('input', updateResetButtons);
+        document.getElementById('typeFilter').addEventListener('change', updateResetButtons);
+        document.getElementById('fandomFilter').addEventListener('change', updateResetButtons);
+        document.getElementById('categoryFilter').addEventListener('change', updateResetButtons);
+        document.getElementById('ratingFilter').addEventListener('change', updateResetButtons);
+        document.getElementById('sortFilter').addEventListener('change', updateResetButtons);
+        document.getElementById('searchInput').addEventListener('keypress', function(e) { if (e.key === 'Enter') applyFilters(); });
+    </script>
+}
+
+@functions {
+    private string GetLocationTypeName(LocationType type) => type switch
+    {
+        LocationType.Cafe => "Кафе",
+        LocationType.Shop => "Магазин",
+        LocationType.ArtObject => "Арт-объект",
+        _ => type.ToString()
+    };
+}

@@ -1,0 +1,71 @@
+@model List<GeekTour.Web.Models.Entities.Review>
+@{
+    ViewData["Title"] = "Отзывы";
+}
+
+<div class="container mt-4">
+    <h2 class="fw-bold mb-4"><i class="fas fa-comment-dots"></i> Отзывы на мои заведения</h2>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (Model.Count == 0)
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-comment-dots fa-3x mb-3"></i>
+            <h5>Отзывов пока нет</h5>
+            <p>Когда пользователи оставят отзывы, они появятся здесь</p>
+        </div>
+    }
+    else
+    {
+        foreach (var review in Model.OrderByDescending(r => r.CreatedAt))
+        {
+            <div class="card mb-3" style="border-radius: 12px;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="fw-bold">@(review.User?.Name ?? "Неизвестный")</span>
+                            <span class="text-muted mx-1">→</span>
+                            <span class="text-muted">@(review.Location?.Name ?? "—")</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="rating-stars" style="font-size:0.8rem;">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <i class="fa-star @(i <= review.Rating ? "fas" : "far")"></i>
+                                }
+                            </span>
+                            <small class="text-muted">@review.CreatedAt.ToString("dd.MM.yyyy")</small>
+                        </div>
+                    </div>
+                    <p class="mb-2">@review.Text</p>
+
+                    @if (!string.IsNullOrEmpty(review.OwnerResponse))
+                    {
+                        <div class="ms-4 p-2" style="background:#F5F5F5;border-radius:8px;border-left:3px solid #000;">
+                            <small class="text-muted d-block mb-1"><i class="fas fa-reply me-1"></i>Ваш ответ:</small>
+                            <p class="mb-0 small">@review.OwnerResponse</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <form method="post" asp-action="RespondToReview" class="ms-4">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="reviewId" value="@review.Id" />
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" name="response" placeholder="Написать ответ..." required maxlength="500" />
+                                <button type="submit" class="btn btn-dark"><i class="fas fa-paper-plane"></i></button>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>

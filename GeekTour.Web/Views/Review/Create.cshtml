@@ -1,0 +1,132 @@
+@model GeekTour.Web.Models.ViewModels.ReviewCreateViewModel
+@{
+    ViewData["Title"] = "Написать отзыв";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0"><i class="fas fa-pen"></i> Написать отзыв</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-controller="Review" asp-action="Create" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="LocationId" />
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <!-- Rating (star selector) -->
+                        <div class="mb-4">
+                            <label class="form-label">Оценка</label>
+                            <div class="star-rating d-flex gap-1" id="starRating">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <button type="button" class="btn btn-outline-warning fs-3 px-2 py-1 star-btn"
+                                            data-value="@i" onclick="setRating(@i)" onmouseover="hoverRating(@i)"
+                                            onmouseout="resetHover()">
+                                        <i class="far fa-star" id="star-@i"></i>
+                                    </button>
+                                }
+                            </div>
+                            <input type="hidden" asp-for="Rating" id="ratingInput" value="0" />
+                            <span asp-validation-for="Rating" class="text-danger"></span>
+                            <div class="form-text">Выберите оценку от 1 до 5 звёзд</div>
+                        </div>
+
+                        <!-- Text -->
+                        <div class="mb-3">
+                            <label asp-for="Text" class="form-label">Текст отзыва</label>
+                            <textarea asp-for="Text" class="form-control" rows="5"
+                                      placeholder="Поделитесь своими впечатлениями..."></textarea>
+                            <span asp-validation-for="Text" class="text-danger"></span>
+                        </div>
+
+                        <!-- Photos -->
+                        <div class="mb-4">
+                            <label asp-for="Photos" class="form-label">
+                                <i class="fas fa-camera"></i> Фотографии
+                            </label>
+                            <input asp-for="Photos" type="file" class="form-control" multiple
+                                   accept="image/png,image/jpeg,image/jpg,image/webp" />
+                            <div class="form-text">Можно загрузить несколько фото (PNG, JPG, WEBP)</div>
+                            <span asp-validation-for="Photos" class="text-danger"></span>
+
+                            <div id="imagePreview" class="d-flex flex-wrap gap-2 mt-2"></div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-dark btn-lg" id="submitBtn" disabled>
+                                <i class="fas fa-paper-plane"></i> Отправить отзыв
+                            </button>
+                            <a asp-controller="Location" asp-action="Details" asp-route-id="@Model.LocationId"
+                               class="btn btn-outline-dark btn-lg">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        var currentRating = 0;
+
+        function setRating(value) {
+            currentRating = value;
+            document.getElementById('ratingInput').value = value;
+            updateStars(value);
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        function hoverRating(value) {
+            updateStars(value);
+        }
+
+        function resetHover() {
+            updateStars(currentRating);
+        }
+
+        function updateStars(value) {
+            for (var i = 1; i <= 5; i++) {
+                var star = document.getElementById('star-' + i);
+                if (i <= value) {
+                    star.classList.remove('far');
+                    star.classList.add('fas');
+                } else {
+                    star.classList.remove('fas');
+                    star.classList.add('far');
+                }
+            }
+        }
+
+        document.querySelector('input[name="Photos"]').addEventListener('change', function (e) {
+            var preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+            var files = e.target.files;
+            for (var i = 0; i < files.length; i++) {
+                var file = files[i];
+                if (file.type.startsWith('image/')) {
+                    var reader = new FileReader();
+                    reader.onload = (function (f) {
+                        return function (evt) {
+                            var div = document.createElement('div');
+                            div.className = 'position-relative';
+                            div.innerHTML = '<img src="' + evt.target.result +
+                                '" class="rounded" style="width: 100px; height: 100px; object-fit: cover;" />' +
+                                '<small class="d-block text-center text-muted">' + f.name.substring(0, 12) + '...</small>';
+                            preview.appendChild(div);
+                        };
+                    })(file);
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+    </script>
+}

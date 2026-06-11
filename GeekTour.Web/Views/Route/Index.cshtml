@@ -1,0 +1,152 @@
+@model List<GeekTour.Web.Models.ViewModels.RouteListViewModel>
+@{
+    ViewData["Title"] = "Маршруты";
+    var publicRoutes = ViewBag.PublicRoutes as List<GeekTour.Web.Models.ViewModels.RouteListViewModel> ?? new List<GeekTour.Web.Models.ViewModels.RouteListViewModel>();
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="fas fa-route"></i> Маршруты</h2>
+        <a asp-controller="Route" asp-action="Create" class="btn btn-dark">
+            <i class="fas fa-plus me-1"></i>Создать маршрут
+        </a>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" id="routeTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="my-routes-tab" data-bs-toggle="tab" data-bs-target="#my-routes" type="button" role="tab">
+                <i class="fas fa-user me-1"></i>Мои маршруты
+                <span class="badge bg-secondary ms-1">@Model.Count</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="public-routes-tab" data-bs-toggle="tab" data-bs-target="#public-routes" type="button" role="tab">
+                <i class="fas fa-globe me-1"></i>Публичные маршруты
+                <span class="badge bg-secondary ms-1">@publicRoutes.Count</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="routeTabsContent">
+        <!-- My Routes -->
+        <div class="tab-pane fade show active" id="my-routes" role="tabpanel">
+            @if (Model.Count == 0)
+            {
+                <div class="card" style="border-radius: 16px; max-width: 500px; margin: 40px auto;">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-map-marked-alt fa-3x mb-3 text-muted"></i>
+                        <h5 class="text-muted">У вас пока нет маршрутов</h5>
+                        <p class="text-muted mb-3">Создайте свой первый маршрут с оптимальным порядком точек!</p>
+                        <a asp-controller="Route" asp-action="Create" class="btn btn-dark">
+                            <i class="fas fa-plus me-1"></i>Создать маршрут
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var route in Model)
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100" style="border-radius: 12px; border-color: #E0E0E0;">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="fw-bold mb-0">@route.Name</h6>
+                                        @if (route.IsPublic)
+                                        {
+                                            <span class="badge bg-dark"><i class="fas fa-globe"></i></span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary"><i class="fas fa-lock"></i></span>
+                                        }
+                                    </div>
+                                    <p class="small text-muted mb-2">@(route.Description?.Length > 60 ? route.Description[..60] + "..." : route.Description)</p>
+                                    <div class="d-flex gap-3 small text-muted mb-3">
+                                        <span><i class="fas fa-map-marker-alt"></i> @route.PointCount</span>
+                                        <span><i class="fas fa-ruler"></i> @route.TotalDistanceKm.ToString("F1") км</span>
+                                        <span><i class="fas fa-clock"></i> @route.EstimatedTimeMinutes мин</span>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <a asp-controller="Route" asp-action="Details" asp-route-id="@route.Id" class="btn btn-sm btn-outline-dark" title="Подробнее"><i class="fas fa-eye"></i></a>
+                                        <form asp-controller="Route" asp-action="Optimize" asp-route-routeId="@route.Id" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-dark" title="Оптимизировать"><i class="fas fa-magic"></i></button>
+                                        </form>
+                                        @if (!route.IsPublic)
+                                        {
+                                            <form asp-controller="Route" asp-action="Share" asp-route-routeId="@route.Id" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-dark" title="Сделать публичным"><i class="fas fa-share-alt"></i></button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-dark" title="Скопировать ссылку"
+                                                    onclick="navigator.clipboard.writeText('@(Context.Request.Scheme)://@(Context.Request.Host)/share/@route.ShareLink'); this.innerHTML='<i class=\'fas fa-check\'></i>'; setTimeout(()=>this.innerHTML='<i class=\'fas fa-link\'></i>', 2000);">
+                                                <i class="fas fa-link"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-white text-muted small">
+                                    @route.CreatedAt.ToString("dd.MM.yyyy")
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Public Routes -->
+        <div class="tab-pane fade" id="public-routes" role="tabpanel">
+            @if (publicRoutes.Count == 0)
+            {
+                <div class="card" style="border-radius: 16px; max-width: 500px; margin: 40px auto;">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-globe fa-3x mb-3 text-muted"></i>
+                        <h5 class="text-muted">Нет публичных маршрутов</h5>
+                        <p class="text-muted">Пока никто не поделился маршрутом</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var route in publicRoutes)
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100" style="border-radius: 12px; border-color: #E0E0E0;">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="fw-bold mb-0">@route.Name</h6>
+                                        <span class="badge bg-dark"><i class="fas fa-globe me-1"></i>Публичный</span>
+                                    </div>
+                                    <p class="small text-muted mb-2">@(route.Description?.Length > 60 ? route.Description[..60] + "..." : route.Description)</p>
+                                    <div class="d-flex gap-3 small text-muted mb-3">
+                                        <span><i class="fas fa-map-marker-alt"></i> @route.PointCount</span>
+                                        <span><i class="fas fa-ruler"></i> @route.TotalDistanceKm.ToString("F1") км</span>
+                                        <span><i class="fas fa-clock"></i> @route.EstimatedTimeMinutes мин</span>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <a asp-controller="Route" asp-action="Details" asp-route-id="@route.Id" class="btn btn-sm btn-dark" title="Подробнее"><i class="fas fa-eye me-1"></i>Открыть</a>
+                                        <button type="button" class="btn btn-sm btn-outline-dark" title="Скопировать ссылку"
+                                                onclick="navigator.clipboard.writeText('@(Context.Request.Scheme)://@(Context.Request.Host)/share/@route.ShareLink'); this.innerHTML='<i class=\'fas fa-check\'></i>'; setTimeout(()=>this.innerHTML='<i class=\'fas fa-link\'></i>', 2000);">
+                                            <i class="fas fa-link"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-white text-muted small">
+                                    @route.CreatedAt.ToString("dd.MM.yyyy")
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>

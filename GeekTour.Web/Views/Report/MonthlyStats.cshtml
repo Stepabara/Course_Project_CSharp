@@ -1,0 +1,72 @@
+@model List<GeekTour.Web.Models.ViewModels.MonthlyStatsViewModel>
+@{
+    ViewData["Title"] = ViewBag.ReportTitle ?? "Статистика по месяцам";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="admin-page-header">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h1><i class="fas fa-calendar-check"></i> @ViewData["Title"]</h1>
+        <div class="d-flex gap-2">
+            <a asp-controller="Report" asp-action="Index" class="btn btn-outline-dark"><i class="fas fa-arrow-left me-1"></i>Назад</a>
+            <form method="post" asp-action="ExportMonthlyStats" class="d-inline">
+                <button type="submit" class="btn btn-dark"><i class="fas fa-file-excel me-1"></i>Экспорт в Excel</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Месяц</th>
+                                <th class="text-center">Регистрации</th>
+                                <th class="text-center">Отзывы</th>
+                                <th class="text-center">Маршруты</th>
+                                <th class="text-center">Всего активностей</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < Model.Count; i++)
+                            {
+                                var item = Model[i];
+                                var total = item.Registrations + item.Reviews + item.Routes;
+                                <tr>
+                                    <td>@(i + 1)</td>
+                                    <td><strong>@item.Month</strong></td>
+                                    <td class="text-center"><span class="badge bg-dark">@item.Registrations</span></td>
+                                    <td class="text-center"><span class="badge bg-secondary">@item.Reviews</span></td>
+                                    <td class="text-center"><span class="badge bg-secondary">@item.Routes</span></td>
+                                    <td class="text-center"><span class="badge bg-dark">@total</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr style="background:#F5F5F5;">
+                                <th colspan="2" class="text-end">Итого:</th>
+                                <th class="text-center">@Model.Sum(m => m.Registrations)</th>
+                                <th class="text-center">@Model.Sum(m => m.Reviews)</th>
+                                <th class="text-center">@Model.Sum(m => m.Routes)</th>
+                                <th class="text-center">@Model.Sum(m => m.Registrations + m.Reviews + m.Routes)</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
+                    <h5>Нет данных</h5>
+                    <p class="text-muted">За выбранный период данные отсутствуют.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>

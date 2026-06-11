@@ -1,0 +1,14 @@
+bin/
+obj/
+.vscode/
+.claude/
+*.user
+*.suo
+.idea/
+GeekTour.Client/
+check_db/
+hashgen_tmp/
+findproc.ps1
+list_lib.ps1
+hashgen.cs
+hashgen.csx

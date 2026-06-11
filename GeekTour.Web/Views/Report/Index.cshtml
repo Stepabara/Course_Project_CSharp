@@ -1,0 +1,182 @@
+@model GeekTour.Web.Models.ViewModels.ReportFilterViewModel
+@{
+    ViewData["Title"] = "Отчёты";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="admin-page-header">
+    <h1>Отчёты и аналитика</h1>
+    <p>Формирование и экспорт отчётов по данным системы</p>
+</div>
+
+<!-- Date Filter -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-filter"></i> Фильтр по дате</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Дата начала</label>
+                <input type="date" id="startDate" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Дата окончания</label>
+                <input type="date" id="endDate" class="form-control" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <button type="button" class="btn btn-outline-dark" onclick="setLastMonth()">
+                    <i class="fas fa-calendar-alt"></i> Последний месяц
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Cards -->
+<div class="row g-4">
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <div class="mb-3"><div class="report-icon"><i class="fas fa-tags"></i></div></div>
+                <h5 class="card-title">Статистика по категориям</h5>
+                <p class="card-text text-muted small flex-grow-1">Просмотры, поиски и количество заведений по каждой категории.</p>
+                <div class="mt-auto d-grid gap-2">
+                    <form method="post" asp-action="CategoryStats">
+                        <input type="hidden" name="StartDate" class="filter-start" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="EndDate" class="filter-end" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                        <button type="submit" class="btn btn-dark w-100"><i class="fas fa-table me-1"></i>Сформировать</button>
+                    </form>
+                    <form method="post" asp-action="ExportCategoryStats">
+                        <input type="hidden" name="StartDate" class="filter-start" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="EndDate" class="filter-end" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                        <button type="submit" class="btn btn-outline-dark w-100"><i class="fas fa-file-excel me-1"></i>Экспорт в Excel</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <div class="mb-3"><div class="report-icon"><i class="fas fa-trophy"></i></div></div>
+                <h5 class="card-title">Топ заведений</h5>
+                <p class="card-text text-muted small flex-grow-1">Лучшие заведения по рейтингу и количеству отзывов.</p>
+                <div class="mt-auto d-grid gap-2">
+                    <form method="post" asp-action="TopLocations">
+                        <input type="hidden" name="StartDate" class="filter-start" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="EndDate" class="filter-end" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                        <button type="submit" class="btn btn-dark w-100"><i class="fas fa-table me-1"></i>Сформировать</button>
+                    </form>
+                    <form method="post" asp-action="ExportTopLocations">
+                        <input type="hidden" name="StartDate" class="filter-start" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="EndDate" class="filter-end" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                        <button type="submit" class="btn btn-outline-dark w-100"><i class="fas fa-file-excel me-1"></i>Экспорт в Excel</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <div class="mb-3"><div class="report-icon"><i class="fas fa-map-marker-alt"></i></div></div>
+                <h5 class="card-title">Популярные точки в маршрутах</h5>
+                <p class="card-text text-muted small flex-grow-1">Наиболее часто добавляемые точки в пользовательские маршруты.</p>
+                <div class="mt-auto d-grid gap-2">
+                    <form method="post" asp-action="PopularRoutePoints">
+                        <input type="hidden" name="StartDate" class="filter-start" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="EndDate" class="filter-end" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                        <button type="submit" class="btn btn-dark w-100"><i class="fas fa-table me-1"></i>Сформировать</button>
+                    </form>
+                    <form method="post" asp-action="ExportPopularRoutePoints">
+                        <input type="hidden" name="StartDate" class="filter-start" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="EndDate" class="filter-end" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                        <button type="submit" class="btn btn-outline-dark w-100"><i class="fas fa-file-excel me-1"></i>Экспорт в Excel</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <div class="mb-3"><div class="report-icon"><i class="fas fa-calendar-check"></i></div></div>
+                <h5 class="card-title">Статистика по месяцам</h5>
+                <p class="card-text text-muted small flex-grow-1">Регистрации, отзывы и созданные маршруты по месяцам.</p>
+                <div class="mt-auto d-grid gap-2">
+                    <form method="post" asp-action="MonthlyStats">
+                        <button type="submit" class="btn btn-dark w-100"><i class="fas fa-table me-1"></i>Сформировать</button>
+                    </form>
+                    <form method="post" asp-action="ExportMonthlyStats">
+                        <button type="submit" class="btn btn-outline-dark w-100"><i class="fas fa-file-excel me-1"></i>Экспорт в Excel</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <div class="mb-3"><div class="report-icon"><i class="fas fa-clock"></i></div></div>
+                <h5 class="card-title">Загрузка заведений по часам</h5>
+                <p class="card-text text-muted small flex-grow-1">Распределение посещений заведений по часам дня.</p>
+                <div class="mt-auto">
+                    <form method="post" asp-action="LocationLoad">
+                        <input type="hidden" name="StartDate" class="filter-start" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="EndDate" class="filter-end" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                        <div class="mb-2">
+                            <label class="form-label small">ID заведения</label>
+                            <input type="number" name="locationId" class="form-control" placeholder="Введите ID" required />
+                        </div>
+                        <button type="submit" class="btn btn-dark w-100"><i class="fas fa-table me-1"></i>Сформировать</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .report-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: #F5F5F5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #000;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        function setLastMonth() {
+            const end = new Date();
+            const start = new Date();
+            start.setMonth(start.getMonth() - 1);
+            const formatDate = (d) => d.toISOString().split('T')[0];
+            document.getElementById('startDate').value = formatDate(start);
+            document.getElementById('endDate').value = formatDate(end);
+            syncDates();
+        }
+
+        function syncDates() {
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            document.querySelectorAll('.filter-start').forEach(el => el.value = start);
+            document.querySelectorAll('.filter-end').forEach(el => el.value = end);
+        }
+
+        document.getElementById('startDate').addEventListener('change', syncDates);
+        document.getElementById('endDate').addEventListener('change', syncDates);
+    </script>
+}

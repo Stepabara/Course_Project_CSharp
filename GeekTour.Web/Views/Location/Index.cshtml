@@ -1,0 +1,435 @@
+@model List<GeekTour.Web.Models.ViewModels.LocationListViewModel>
+@using GeekTour.Web.Models.Enums
+@{
+    ViewData["Title"] = "Заведения";
+    var fandoms = ViewBag.Fandoms as List<GeekTour.Web.Models.Entities.Fandom> ?? new List<GeekTour.Web.Models.Entities.Fandom>();
+    var categories = ViewBag.Categories as List<GeekTour.Web.Models.Entities.Category> ?? new List<GeekTour.Web.Models.Entities.Category>();
+}
+
+<style>
+    .bento-page {
+        color: #000000;
+    }
+
+    /* Filter form styling */
+    .bento-filter-card {
+        background: #FFFFFF;
+        border: 1px solid #E0E0E0;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .bento-filter-card .form-control,
+    .bento-filter-card .form-select {
+        background-color: #F5F5F5;
+        border: 1px solid #E0E0E0;
+        border-radius: 12px;
+        height: 48px;
+        color: #000000;
+        font-size: 0.875rem;
+    }
+
+    .bento-filter-card .form-control:focus,
+    .bento-filter-card .form-select:focus {
+        background-color: #FFFFFF;
+        border-color: #000000;
+        box-shadow: 0 0 0 0.15rem rgba(0, 0, 0, 0.08);
+    }
+
+    .bento-filter-card .form-label {
+        color: #000000;
+        font-weight: 600;
+        font-size: 0.8rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    /* Filter pills */
+    .bento-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 16px;
+        border-radius: 24px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        border: 1px solid #E0E0E0;
+        background: #FFFFFF;
+        color: #666666;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .bento-pill:hover {
+        border-color: #000000;
+        color: #000000;
+    }
+
+    .bento-pill.active {
+        background: #000000;
+        color: #FFFFFF;
+        border-color: #000000;
+    }
+
+    /* Location card styling */
+    .bento-card {
+        background: #FFFFFF;
+        border: 1px solid #E0E0E0;
+        border-radius: 16px;
+        overflow: hidden;
+        transition: box-shadow 0.2s ease, transform 0.2s ease;
+        height: 100%;
+    }
+
+    .bento-card:hover {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
+    }
+
+    .bento-card-img {
+        height: 200px;
+        object-fit: cover;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .bento-card-placeholder {
+        height: 200px;
+        background: #1a1a1a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .bento-card-placeholder i {
+        color: #FFFFFF;
+        font-size: 2.5rem;
+        opacity: 0.6;
+    }
+
+    .bento-card .card-body {
+        padding: 20px;
+    }
+
+    .bento-card .card-title {
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: #000000;
+        margin-bottom: 0;
+    }
+
+    .bento-card .card-text {
+        color: #666666;
+        font-size: 0.85rem;
+    }
+
+    /* Stars - black instead of yellow */
+    .bento-stars .fa-star,
+    .bento-stars .fas.fa-star,
+    .bento-stars .far.fa-star {
+        color: #000000 !important;
+    }
+
+    .bento-stars .far.fa-star {
+        opacity: 0.25;
+    }
+
+    /* Badge overrides */
+    .bento-card .badge.bg-dark {
+        background-color: #000000 !important;
+        color: #FFFFFF;
+        font-weight: 500;
+        font-size: 0.7rem;
+        padding: 4px 10px;
+        border-radius: 8px;
+    }
+
+    .bento-card .badge.bg-light {
+        background-color: #F5F5F5 !important;
+        color: #000000 !important;
+        border: 1px solid #E0E0E0;
+        font-weight: 500;
+        font-size: 0.7rem;
+        padding: 4px 10px;
+        border-radius: 8px;
+    }
+
+    /* Buttons */
+    .bento-btn-dark {
+        background-color: #000000;
+        color: #FFFFFF;
+        border: 1px solid #000000;
+        border-radius: 12px;
+        height: 48px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .bento-btn-dark:hover {
+        background-color: #333333;
+        border-color: #333333;
+        color: #FFFFFF;
+    }
+
+    .bento-btn-dark-sm {
+        background-color: #000000;
+        color: #FFFFFF;
+        border: 1px solid #000000;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 8px 20px;
+        transition: all 0.2s ease;
+    }
+
+    .bento-btn-dark-sm:hover {
+        background-color: #333333;
+        border-color: #333333;
+        color: #FFFFFF;
+    }
+
+    .bento-btn-outline {
+        background-color: transparent;
+        color: #000000;
+        border: 1px solid #000000;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 8px 20px;
+        transition: all 0.2s ease;
+    }
+
+    .bento-btn-outline:hover {
+        background-color: #000000;
+        color: #FFFFFF;
+    }
+
+    /* Page header */
+    .bento-page-header h1 {
+        font-weight: 800;
+        font-size: 1.75rem;
+        color: #000000;
+        letter-spacing: -0.02em;
+    }
+
+    .bento-page-header h1 i {
+        color: #000000;
+    }
+
+    /* Empty state */
+    .bento-empty {
+        background: #F5F5F5;
+        border: 1px solid #E0E0E0;
+        border-radius: 16px;
+        padding: 60px 20px;
+        text-align: center;
+    }
+
+    .bento-empty i {
+        color: #000000;
+        opacity: 0.15;
+    }
+
+    .bento-empty h4 {
+        color: #000000;
+        font-weight: 700;
+    }
+
+    .bento-empty p {
+        color: #666666;
+    }
+</style>
+
+<div class="container py-4 bento-page">
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 bento-page-header">
+        <h1 class="mb-0"><i class="fas fa-store me-2"></i>Заведения</h1>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card bento-filter-card mb-4">
+        <div class="card-body p-4">
+            <form method="get" asp-action="Index" asp-controller="Location">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Поиск</label>
+                        <input type="text" name="SearchQuery" class="form-control"
+                               placeholder="Название или описание..."
+                               value="@Context.Request.Query["SearchQuery"]" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Тип</label>
+                        <select name="Type" class="form-select">
+                            <option value="">Все типы</option>
+                            @foreach (LocationType type in Enum.GetValues(typeof(LocationType)))
+                            {
+                                <option value="@((int)type)" selected="@(Context.Request.Query["Type"] == ((int)type).ToString())">
+                                    @GetLocationTypeName(type)
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Фандом</label>
+                        <select name="FandomId" class="form-select">
+                            <option value="">Все фандомы</option>
+                            @foreach (var fandom in fandoms)
+                            {
+                                <option value="@fandom.Id" selected="@(Context.Request.Query["FandomId"] == fandom.Id.ToString())">
+                                    @fandom.Name
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Категория</label>
+                        <select name="CategoryId" class="form-select">
+                            <option value="">Все категории</option>
+                            @foreach (var cat in categories)
+                            {
+                                <option value="@cat.Id" selected="@(Context.Request.Query["CategoryId"] == cat.Id.ToString())">
+                                    @cat.Name
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Мин. рейтинг</label>
+                        <select name="MinRating" class="form-select">
+                            <option value="">Любой</option>
+                            @for (int i = 5; i >= 1; i--)
+                            {
+                                <option value="@i" selected="@(Context.Request.Query["MinRating"] == i.ToString())">
+                                    @i+
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Сортировка</label>
+                        <select name="SortBy" class="form-select">
+                            <option value="rating" selected="@(Context.Request.Query["SortBy"] == "rating" || string.IsNullOrEmpty(Context.Request.Query["SortBy"]))">По рейтингу</option>
+                            <option value="name" selected="@(Context.Request.Query["SortBy"] == "name")">По названию</option>
+                            <option value="newest" selected="@(Context.Request.Query["SortBy"] == "newest")">Новые</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="bento-btn-dark w-100 d-flex align-items-center justify-content-center">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Filter Pills -->
+            <div class="d-flex flex-wrap gap-2 mt-3 pt-3" style="border-top: 1px solid #E0E0E0;">
+                <span class="text-muted small fw-bold text-uppercase me-1" style="line-height: 32px;">Быстрые фильтры:</span>
+                <a href="@Url.Action("Index", new { SortBy = "rating" })" class="bento-pill @(Context.Request.Query["SortBy"] == "rating" || string.IsNullOrEmpty(Context.Request.Query["SortBy"]) ? "active" : "")">
+                    <i class="fas fa-star me-1"></i>Лучшие
+                </a>
+                <a href="@Url.Action("Index", new { SortBy = "newest" })" class="bento-pill @(Context.Request.Query["SortBy"] == "newest" ? "active" : "")">
+                    <i class="fas fa-clock me-1"></i>Новые
+                </a>
+                <a href="@Url.Action("Index", new { MinRating = "4" })" class="bento-pill @(Context.Request.Query["MinRating"] == "4" ? "active" : "")">
+                    <i class="fas fa-thumbs-up me-1"></i>4+ звёзд
+                </a>
+                @foreach (var fandom in fandoms.Take(5))
+                {
+                    <a href="@Url.Action("Index", new { FandomId = fandom.Id })" class="bento-pill @(Context.Request.Query["FandomId"] == fandom.Id.ToString() ? "active" : "")">
+                        @fandom.Name
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Locations Grid -->
+    @if (Model.Any())
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var location in Model)
+            {
+                <div class="col">
+                    <div class="bento-card">
+                        @if (!string.IsNullOrEmpty(location.MainImagePath))
+                        {
+                            <img src="@location.MainImagePath" class="card-img-top bento-card-img" alt="@location.Name" />
+                        }
+                        else
+                        {
+                            <div class="bento-card-placeholder">
+                                <i class="fas fa-store"></i>
+                            </div>
+                        }
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title">@location.Name</h5>
+                                <span class="badge bg-dark">@GetLocationTypeName(location.Type)</span>
+                            </div>
+                            <p class="text-muted small mb-2">
+                                <i class="fas fa-tag me-1"></i>@location.CategoryName
+                            </p>
+                            <p class="card-text text-truncate mb-2">@location.Description</p>
+
+                            <!-- Rating - Black Stars -->
+                            <div class="bento-stars mb-2">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    if (i <= Math.Round(location.AverageRating))
+                                    {
+                                        <i class="fas fa-star"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="far fa-star"></i>
+                                    }
+                                }
+                                <span class="ms-1 fw-bold small">@location.AverageRating.ToString("F1")</span>
+                                <span class="ms-1 text-muted small">(@location.ReviewCount)</span>
+                            </div>
+
+                            <!-- Fandoms -->
+                            @if (location.FandomNames.Any())
+                            {
+                                <div class="mb-3">
+                                    @foreach (var fandomName in location.FandomNames)
+                                    {
+                                        <span class="badge bg-light text-dark border me-1 mb-1">@fandomName</span>
+                                    }
+                                </div>
+                            }
+
+                            <div class="mt-auto">
+                                <a asp-action="Details" asp-controller="Location" asp-route-id="@location.Id"
+                                   class="bento-btn-outline btn w-100 d-flex align-items-center justify-content-center text-decoration-none">
+                                    <i class="fas fa-arrow-right me-2"></i>Подробнее
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="bento-empty">
+            <i class="fas fa-search fa-3x mb-3 d-block"></i>
+            <h4>Заведения не найдены</h4>
+            <p>Попробуйте изменить параметры фильтрации.</p>
+        </div>
+    }
+</div>
+
+@functions {
+    private string GetLocationTypeName(LocationType type) => type switch
+    {
+        LocationType.Cafe => "Кафе",
+        LocationType.Shop => "Магазин",
+        LocationType.ArtObject => "Арт-объект",
+        _ => type.ToString()
+    };
+}

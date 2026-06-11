@@ -1,0 +1,104 @@
+@model GeekTour.Web.Models.ViewModels.RouteCreateViewModel
+@{
+    ViewData["Title"] = "Создание маршрута";
+    var locations = ViewBag.Locations as List<GeekTour.Web.Models.ViewModels.LocationListViewModel> ?? new List<GeekTour.Web.Models.ViewModels.LocationListViewModel>();
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card" style="border-radius: 16px; border-color: #E0E0E0;">
+                <div class="card-body p-4">
+                    <h3 class="fw-bold mb-4"><i class="fas fa-route"></i> Создание маршрута</h3>
+
+                    <form asp-controller="Route" asp-action="Create" method="post" id="createRouteForm">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <!-- Name -->
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label fw-bold">Название <span class="text-danger">*</span></label>
+                            <input asp-for="Name" class="form-control" placeholder="Например: Вечерний маршрут по центру" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label fw-bold">Описание</label>
+                            <textarea asp-for="Description" class="form-control" rows="2" placeholder="Что интересного на маршруте..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Location picker -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Выберите точки маршрута <span class="text-danger">*</span></label>
+                            <div class="route-location-picker">
+                                @foreach (var loc in locations)
+                                {
+                                    <label class="route-location-chip">
+                                        <input type="checkbox" name="LocationIds" value="@loc.Id" />
+                                        <span class="loc-name">@loc.Name</span>
+                                        <span class="loc-meta">@loc.CategoryName • @loc.AverageRating.ToString("F1") ⭐</span>
+                                    </label>
+                                }
+                            </div>
+                            <div class="form-text">Выберите минимум 2 точки. Порядок можно будет оптимизировать.</div>
+                        </div>
+
+                        <!-- Optimize toggle -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="optimizeRoute" value="true" id="optimizeSwitch" checked />
+                                <label class="form-check-label fw-bold" for="optimizeSwitch">
+                                    <i class="fas fa-magic"></i> Автоматическая оптимизация маршрута
+                                </label>
+                            </div>
+                            <div class="form-text">Находит кратчайший путь между точками с учётом часов работы</div>
+                        </div>
+
+                        <!-- Is Public -->
+                        <div class="mb-4 form-check">
+                            <input asp-for="IsPublic" class="form-check-input" type="checkbox" />
+                            <label asp-for="IsPublic" class="form-check-label fw-bold">
+                                <i class="fas fa-globe"></i> Сделать маршрут публичным
+                            </label>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-dark"><i class="fas fa-save me-1"></i>Создать маршрут</button>
+                            <a asp-controller="Route" asp-action="Index" class="btn btn-outline-dark"><i class="fas fa-times me-1"></i>Отмена</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .route-location-picker {
+            display: flex; flex-wrap: wrap; gap: 8px; max-height: 250px;
+            overflow-y: auto; padding: 12px; border: 1px solid var(--color-border);
+            border-radius: 12px; background: var(--color-bg);
+        }
+        .route-location-chip {
+            display: flex; flex-direction: column; padding: 8px 14px;
+            border: 1px solid var(--color-border); border-radius: 10px;
+            cursor: pointer; transition: all 0.15s ease; user-select: none;
+            background: #fff; min-width: 140px; margin: 0;
+        }
+        .route-location-chip:hover { border-color: #999; background: #f5f5f5; }
+        .route-location-chip input[type="checkbox"] { display: none; }
+        .route-location-chip:has(input:checked) {
+            background: var(--color-black); color: #fff; border-color: var(--color-black);
+        }
+        .route-location-chip .loc-name { font-weight: 600; font-size: 0.85rem; }
+        .route-location-chip .loc-meta { font-size: 0.7rem; opacity: 0.7; }
+    </style>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

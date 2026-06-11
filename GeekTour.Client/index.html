@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeekTour — Гик-турист</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0d0d0d;--surface:#161616;--card:#1e1e1e;--border:#2c2c2c;--text:#eee;--muted:#666;--accent:#e6a817;--r:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+h1,h2,h3,h4,h5{font-family:'Montserrat',sans-serif;font-weight:700}
+
+/* ═══ NAV ═══ */
+.nav{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.nav-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;height:56px;padding:0 16px;gap:16px}
+.logo{font-family:'Montserrat',sans-serif;font-weight:800;font-size:1.2rem;color:var(--accent)}
+.tabs{display:flex;gap:2px;flex:1;justify-content:center}
+.tab{padding:7px 12px;border-radius:8px;border:none;background:none;color:var(--muted);cursor:pointer;font-size:0.8rem;font-weight:500;transition:.15s}
+.tab:hover{color:var(--text);background:var(--card)}
+.tab.active{color:var(--accent);background:var(--card);font-weight:700}
+.nav-right{display:flex;align-items:center;gap:8px}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.8rem;cursor:pointer}
+.uname{font-size:0.8rem;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ═══ MOBILE NAV ═══ */
+.mnav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:100}
+.mnav-in{display:flex;justify-content:space-around;padding:6px 0}
+.mbtn{display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 6px;color:var(--muted);font-size:0.6rem;border:none;background:none;cursor:pointer}
+.mbtn i{font-size:1rem;margin-bottom:1px}
+.mbtn.active{color:var(--accent)}
+
+/* ═══ TABS ═══ */
+.tc{display:none;animation:fi .2s}
+.tc.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══ COMPONENTS ═══ */
+.card{background:var(--card);border-radius:var(--r);border:1px solid var(--border)}
+.ch{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.ch h5{font-size:0.9rem}
+.cb{padding:16px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:1px solid transparent;cursor:pointer;font-size:0.8rem;font-weight:600;transition:.15s}
+.btn-p{background:var(--accent);color:#000}
+.btn-p:hover{filter:brightness(1.1)}
+.btn-o{background:transparent;border-color:var(--border);color:(--text)}
+.btn-o:hover{border-color:var(--muted)}
+.btn-d{background:#dc3545;color:#fff}
+.btn-s{padding:5px 10px;font-size:0.75rem}
+.btn-block{width:100%}
+.fg{margin-bottom:12px}
+.fl{display:block;font-size:0.75rem;color:var(--muted);margin-bottom:4px}
+.fc{width:100%;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.85rem}
+.fc:focus{outline:none;border-color:var(--accent)}
+textarea.fc{resize:vertical;min-height:70px}
+.es{text-align:center;padding:40px 20px;color:var(--muted)}
+.es i{font-size:2rem;margin-bottom:10px;display:block;opacity:.2}
+
+/* ═══ MAP ═══ */
+#map{height:100%;width:100%}
+.lp{position:absolute;bottom:12px;left:12px;background:var(--surface);border-radius:var(--r);padding:14px;z-index:400;max-width:260px;border:1px solid var(--border);display:none}
+.lp h6{font-size:0.9rem;margin-bottom:4px}
+.lp p{font-size:0.75rem;color:var(--muted);margin-bottom:10px;line-height:1.4}
+.lp-btns{display:flex;gap:4px;flex-wrap:wrap}
+
+/* ═══ FILTER CHIPS ═══ */
+.chip{display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.8rem;transition:.15s;margin-bottom:3px}
+.chip:hover{border-color:#555}
+.chip.on{background:var(--accent);color:#000;border-color:var(--accent)}
+.chip input{display:none}
+
+/* ═══ CALENDAR ═══ */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-dn{text-align:center;font-size:0.65rem;color:var(--muted);padding:4px 0;font-weight:600}
+.cal-day{text-align:center;padding:7px 3px;border-radius:6px;cursor:pointer;font-size:0.8rem;border:1px solid transparent;transition:.15s}
+.cal-day:hover{background:var(--card)}
+.cal-day.today{border-color:var(--accent);color:var(--accent)}
+.cal-day.sel{background:var(--accent);color:#000}
+.cal-day.dot::after{content:'';display:block;width:3px;height:3px;background:var(--accent);border-radius:50%;margin:1px auto 0}
+.cal-day.other{opacity:.25}
+
+/* ═══ STARS ═══ */
+.stars{display:flex;gap:3px;font-size:1.1rem;cursor:pointer}
+.stars i{color:var(--border);transition:color .15s}
+.stars i.on{color:var(--accent)}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:768px){
+.tabs{display:none}
+.mnav{display:block}
+.tc{padding-bottom:64px!important}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+<div class="nav-in">
+<div class="logo"><i class="fas fa-gamepad"></i> GeekTour</div>
+<div class="tabs">
+<button class="tab active" data-t="map"><i class="fas fa-map"></i> Карта</button>
+<button class="tab" data-t="planner"><i class="fas fa-calendar-alt"></i> Планировщик</button>
+<button class="tab" data-t="routes"><i class="fas fa-route"></i> Маршруты</button>
+<button class="tab" data-t="reviews"><i class="fas fa-comments"></i> Отзывы</button>
+<button class="tab" data-t="profile"><i class="fas fa-user"></i> Профиль</button>
+</div>
+<div class="nav-right" id="navR"></div>
+</div>
+</nav>
+
+<!-- MOBILE NAV -->
+<div class="mnav">
+<div class="mnav-in">
+<button class="mbtn active" data-t="map"><i class="fas fa-map"></i><span>Карта</span></button>
+<button class="mbtn" data-t="planner"><i class="fas fa-calendar-alt"></i><span>План.</span></button>
+<button class="mbtn" data-t="routes"><i class="fas fa-route"></i><span>Маршруты</span></button>
+<button class="mbtn" data-t="reviews"><i class="fas fa-comments"></i><span>Отзывы</span></button>
+<button class="mbtn" data-t="profile"><i class="fas fa-user"></i><span>Профиль</span></button>
+</div>
+</div>
+
+<!-- ═══ TAB 1: MAP ═══ -->
+<div class="tc active" id="t-map" style="padding:0;max-width:100%">
+<div style="display:flex;height:calc(100vh - 56px)">
+<div style="width:270px;background:var(--surface);border-right:1px solid var(--border);padding:16px;overflow-y:auto;flex-shrink:0">
+<h4 style="font-size:0.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px"><i class="fas fa-filter me-1"></i>Фильтры</h4>
+<div style="margin-bottom:16px">
+<div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Фандом</div>
+<div id="fFandom"></div>
+</div>
+<div style="margin-bottom:16px">
+<div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Тип</div>
+<div id="fType"></div>
+</div>
+<div id="lp" class="lp">
+<h6 id="lpT"></h6>
+<p id="lpD"></p>
+<div class="lp-btns">
+<button class="btn btn-s btn-p" onclick="App.map.addRoute()"><i class="fas fa-plus"></i> В маршрут</button>
+<button class="btn btn-s btn-o" onclick="App.map.addCal()"><i class="fas fa-calendar"></i> Календарь</button>
+<button class="btn btn-s btn-o" onclick="App.map.review()"><i class="fas fa-pen"></i> Отзыв</button>
+</div>
+</div>
+</div>
+<div style="flex:1;position:relative"><div id="map"></div></div>
+</div>
+</div>
+
+<!-- ═══ TAB 2: PLANNER ═══ -->
+<div class="tc" id="t-planner" style="padding:16px;max-width:1000px;margin:0 auto">
+<h2 style="margin-bottom:20px;font-size:1.3rem"><i class="fas fa-calendar-alt me-2" style="color:var(--accent)"></i>Планировщик</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+<div class="card">
+<div class="ch"><button class="btn btn-s btn-o" onclick="App.cal.prev()"><i class="fas fa-chevron-left"></i></button><h5 id="calT"></h5><button class="btn btn-s btn-o" onclick="App.cal.next()"><i class="fas fa-chevron-right"></i></button></div>
+<div class="cb"><div id="calG" class="cal-grid"></div></div>
+</div>
+<div class="card">
+<div class="ch"><h5><i class="fas fa-list me-1"></i>Точки</h5></div>
+<div class="cb">
+<div id="planPts"></div>
+<div id="planAct" style="display:none;margin-top:12px;display:flex;gap:6px">
+<button class="btn btn-p btn-s" onclick="App.buildRoute()"><i class="fas fa-route me-1"></i>Построить маршрут</button>
+<button class="btn btn-o btn-s" onclick="App.clearPlan()"><i class="fas fa-trash me-1"></i>Очистить</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ═══ TAB 3: ROUTES ═══ -->
+<div class="tc" id="t-routes" style="padding:16px;max-width:1000px;margin:0 auto">
+<h2 style="margin-bottom:20px;font-size:1.3rem"><i class="fas fa-route me-2" style="color:var(--accent)"></i>Маршруты</h2>
+<div class="card mb-4" id="curCard" style="display:none">
+<div class="ch"><h5><i class="fas fa-map-signs me-1"></i>Текущий маршрут</h5></div>
+<div class="cb">
+<div id="curPts"></div>
+<div id="curSum" style="display:flex;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"></div>
+<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
+<button class="btn btn-p btn-s" onclick="App.routes.optimizeNearest()"><i class="fas fa-magic me-1"></i>Кратчайший путь</button>
+<button class="btn btn-o btn-s" onclick="App.routes.optimizeHours()"><i class="fas fa-clock me-1"></i>С учётом времени работы</button>
+<button class="btn btn-s" style="background:#198754;color:#fff" onclick="App.routes.save()"><i class="fas fa-save me-1"></i>Сохранить</button>
+<button class="btn btn-o btn-s" onclick="App.routes.share()"><i class="fas fa-share-alt me-1"></i>Поделиться</button>
+<button class="btn btn-o btn-s" onclick="App.routes.clear()"><i class="fas fa-times me-1"></i>Очистить</button>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="ch"><h5><i class="fas fa-star me-1"></i>Сохранённые маршруты</h5></div>
+<div class="cb" id="savedR"></div>
+</div>
+</div>
+
+<!-- ═══ TAB 4: REVIEWS ═══ -->
+<div class="tc" id="t-reviews" style="padding:16px;max-width:1000px;margin:0 auto">
+<h2 style="margin-bottom:20px;font-size:1.3rem"><i class="fas fa-comments me-2" style="color:var(--accent)"></i>Отзывы</h2>
+<div style="display:grid;grid-template-columns:1fr 320px;gap:20px">
+<div>
+<input type="text" class="fc" id="revQ" placeholder="🔍 Поиск по заведению..." oninput="App.reviews.render()" style="margin-bottom:12px">
+<div id="revList"></div>
+</div>
+<div>
+<div class="card" style="position:sticky;top:72px">
+<div class="ch"><h5><i class="fas fa-pen me-1"></i>Написать отзыв</h5></div>
+<div class="cb">
+<form onsubmit="App.reviews.submit(event)">
+<div class="fg"><label class="fl">Заведение</label><select class="fc" id="revLoc" required></select></div>
+<div class="fg"><label class="fl">Рейтинг</label><div class="stars" id="revStars"><i class="far fa-star" data-v="1"></i><i class="far fa-star" data-v="2"></i><i class="far fa-star" data-v="3"></i><i class="far fa-star" data-v="4"></i><i class="far fa-star" data-v="5"></i></div><input type="hidden" id="revRat" value="0"></div>
+<div class="fg"><label class="fl">Текст</label><textarea class="fc" id="revTxt" required placeholder="Ваш отзыв..." rows="4"></textarea></div>
+<div class="fg"><label class="fl">Фото (URL)</label><input type="text" class="fc" id="revPh" placeholder="https://..."></div>
+<button type="submit" class="btn btn-p btn-block"><i class="fas fa-paper-plane me-1"></i>Отправить</button>
+</form>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ═══ TAB 5: PROFILE ═══ -->
+<div class="tc" id="t-profile" style="padding:16px;max-width:600px;margin:0 auto">
+<h2 style="margin-bottom:20px;font-size:1.3rem"><i class="fas fa-user me-2" style="color:var(--accent)"></i>Профиль</h2>
+<div id="profBody"></div>
+</div>
+
+<!-- ═══ AUTH MODAL ═══ -->
+<div id="authM" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center">
+<div class="card" style="max-width:400px;width:90%;max-height:85vh;overflow-y:auto">
+<div class="ch"><h5 id="authT">Вход</h5><button onclick="document.getElementById('authM').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">&times;</button></div>
+<div class="cb" id="authB"></div>
+</div>
+</div>
+
+<!-- ═══ SHARE MODAL ═══ -->
+<div id="shM" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center">
+<div class="card" style="max-width:420px;width:90%">
+<div class="ch"><h5>Поделиться маршрутом</h5><button onclick="document.getElementById('shM').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">&times;</button></div>
+<div class="cb">
+<div class="fg"><label class="fl">Ссылка</label><div style="display:flex;gap:4px"><input type="text" class="fc" id="shL" readonly><button class="btn btn-p btn-s" onclick="navigator.clipboard.writeText(document.getElementById('shL').value)"><i class="fas fa-copy"></i></button></div></div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+<button class="btn btn-o btn-sm" onclick="window.open('https://t.me/share/url?url='+encodeURIComponent(document.getElementById('shL').value))"><i class="fab fa-telegram"></i> Telegram</button>
+<button class="btn btn-o btn-sm" onclick="window.open('https://vk.com/share.php?url='+encodeURIComponent(document.getElementById('shL').value))"><i class="fab fa-vk"></i> VK</button>
+<button class="btn btn-o btn-sm" onclick="window.open('https://twitter.com/intent/tweet?url='+encodeURIComponent(document.getElementById('shL').value))"><i class="fab fa-twitter"></i> Twitter</button>
+</div>
+</div>
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ═══════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════
+class Storage_{
+    get(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}}
+    set(k,v){localStorage.setItem(k,JSON.stringify(v))}
+}
+
+// ═══════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════
+const LOCS=[
+    {id:1,name:"Аниме-кафе Tokyo",type:"cafe",fandom:"anime",lat:55.751244,lng:37.618423,desc:"Тематическое кафе в стиле аниме. Меню с блюдами из аниме-сериалов.",hours:{mon:"10:00-22:00",tue:"10:00-22:00",wed:"10:00-22:00",thu:"10:00-22:00",fri:"10:00-01:00",sat:"10:00-01:00",sun:"11:00-22:00"},photo:"https://placehold.co/400x200/1a1a1a/e6a817?text=Anime+Cafe"},
+    {id:2,name:"Comic World",type:"shop",fandom:"comics",lat:55.755864,lng:37.617698,desc:"Широкий выбор Marvel, DC, японская манга и фигурки.",hours:{mon:"11:00-21:00",tue:"11:00-21:00",wed:"11:00-21:00",thu:"11:00-21:00",fri:"11:00-22:00",sat:"10:00-22:00",sun:"11:00-20:00"},photo:"https://placehold.co/400x200/1a1a1a/dc3545?text=Comic+Shop"},
+    {id:3,name:"Minecraft Арт",type:"art",fandom:"videogames",lat:55.758992,lng:37.614532,desc:"Пиксель-арт инсталляция в стиле Minecraft. Фотозона!",hours:{mon:"closed",tue:"12:00-20:00",wed:"12:00-20:00",thu:"12:00-20:00",fri:"12:00-21:00",sat:"11:00-21:00",sun:"11:00-19:00"},photo:"https://placehold.co/400x200/1a1a1a/198754?text=Minecraft+Art"},
+    {id:4,name:"Настолки Hub",type:"cafe",fandom:"boardgames",lat:55.753215,lng:37.620145,desc:"Антикафе для настолочников. Библиотека игр, турниры по D&D.",hours:{mon:"12:00-23:00",tue:"12:00-23:00",wed:"12:00-23:00",thu:"12:00-00:00",fri:"12:00-02:00",sat:"10:00-02:00",sun:"10:00-22:00"},photo:"https://placehold.co/400x200/1a1a1a/6c757d?text=Board+Games"},
+    {id:5,name:"Киберпанк Бар Neo",type:"cafe",fandom:"videogames",lat:55.750123,lng:37.622456,desc:"Бар в стиле киберпанк. Неон, коктейли, видеоигровые автоматы.",hours:{mon:"14:00-02:00",tue:"14:00-02:00",wed:"14:00-02:00",thu:"14:00-03:00",fri:"14:00-05:00",sat:"12:00-05:00",sun:"14:00-00:00"},photo:"https://placehold.co/400x200/1a1a1a/e6a817?text=Cyberpunk+Bar"},
+    {id:6,name:"Ретро-игровой клуб",type:"art",fandom:"videogames",lat:55.754500,lng:37.615800,desc:"Ретро-консоли, аркады, турниры по старым играм.",hours:{mon:"11:00-22:00",tue:"11:00-22:00",wed:"11:00-22:00",thu:"11:00-22:00",fri:"11:00-00:00",sat:"10:00-00:00",sun:"12:00-20:00"},photo:"https://placehold.co/400x200/1a1a1a/198754?text=Retro+Gaming"},
+    {id:7,name:"Манга-бутик Sakura",type:"shop",fandom:"anime",lat:55.757200,lng:37.621300,desc:"Манга, фигурки, мерч из аниме. Редкие тома.",hours:{mon:"10:00-20:00",tue:"10:00-20:00",wed:"10:00-20:00",thu:"10:00-20:00",fri:"10:00-21:00",sat:"10:00-21:00",sun:"closed"},photo:"https://placehold.co/400x200/1a1a1a/e6a817?text=Manga+Shop"},
+    {id:8,name:"DC Comics Store",type:"shop",fandom:"comics",lat:55.752100,lng:37.619500,desc:"Официальный магазин DC Comics. Комиксы, мерч, коллекционки.",hours:{mon:"11:00-21:00",tue:"11:00-21:00",wed:"11:00-21:00",thu:"11:00-21:00",fri:"11:00-22:00",sat:"10:00-22:00",sun:"12:00-18:00"},photo:"https://placehold.co/400x200/1a1a1a/dc3545?text=DC+Comics"}
+];
+
+const FANDOMS={anime:{l:"Аниме",c:"#e6a817"},comics:{l:"Комиксы",c:"#dc3545"},videogames:{l:"Видеоигры",c:"#198754"},boardgames:{l:"Настолки",c:"#6c757d"}};
+const TYPES={cafe:{l:"Кафе",e:"🍜"},shop:{l:"Магазин",e:"🛒"},art:{l:"Арт-объект",e:"🎨"}};
+
+// ═══════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════
+class Auth{
+    constructor(){this.store=new Storage_}
+    get user(){return this.store.get('user',null)}
+    set user(v){this.store.set('user',v)}
+    show(m='login'){
+        document.getElementById('authT').textContent=m==='login'?'Вход':'Регистрация';
+        document.getElementById('authB').innerHTML=m===`
+            <form onsubmit="App.auth.login(event)">
+                <div class="fg"><label class="fl">Email</label><input type="email" class="fc" id="aE" required></div>
+                <div class="fg"><label class="fl">Пароль</label><input type="password" class="fc" id="aP" required></div>
+                <button type="submit" class="btn btn-p btn-block">Войти</button>
+            </form>
+            <p style="text-align:center;margin-top:10px;font-size:0.8rem;color:var(--muted)">Нет аккаунта? <a href="#" onclick="App.auth.show('reg')">Регистрация</a></p>
+        ` : `
+            <form onsubmit="App.auth.register(event)">
+                <div class="fg"><label class="fl">Имя</label><input type="text" class="fc" id="aN" required></div>
+                <div class="fg"><label class="fl">Email</label><input type="email" class="fc" id="aE" required></div>
+                <div class="fg"><label class="fl">Пароль</label><input type="password" class="fc" id="aP" required minlength="6"></div>
+                <button type="submit" class="btn btn-p btn-block">Зарегистрироваться</button>
+            </form>
+            <p style="text-align:center;margin-top:10px;font-size:0.8rem;color:var(--muted)">Есть аккаунт? <a href="#" onclick="App.auth.show('login')">Вход</a></p>
+        `;
+        document.getElementById('authM').style.display='flex';
+    }
+    close(){document.getElementById('authM').style.display='none'}
+    login(e){
+        e.preventDefault();
+        const email=document.getElementById('aE').value,pass=document.getElementById('aP').value;
+        let users=this.store.get('users',[]);
+        let u=users.find(x=>x.email===email&&x.password===pass);
+        if(!u){u={id:Date.now(),name:email.split('@')[0],email,password:pass};users.push(u);this.store.set('users',users)}
+        this.user=u;this.close();App.renderNav();App.renderProfile();
+    }
+    register(e){
+        e.preventDefault();
+        const name=document.getElementById('aN').value,email=document.getElementById('aE').value,pass=document.getElementById('aP').value;
+        let users=this.store.get('users',[]);
+        if(users.find(x=>x.email===email)){alert('Email занят');return}
+        const u={id:Date.now(),name,email,password:pass};users.push(u);this.store.set('users',users);
+        this.user=u;this.close();App.renderNav();App.renderProfile();
+    }
+    logout(){this.user=null;App.renderNav();App.auth.show();}
+}
+
+// ═══════════════════════════════════════
+// MAP MANAGER
+// ═══════════════════════════════════════
+class MapManager{
+    constructor(){this.map=null;this.markers=[];this.curLoc=null;this.store=new Storage_}
+    init(){
+        this.map=L.map('map').setView([55.755,37.618],13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OSM'}).addTo(this.map);
+        this.renderMarkers();
+    }
+    renderMarkers(){
+        this.markers.forEach(m=>this.map.removeLayer(m));this.markers=[];
+        const af=Array.from(document.querySelectorAll('.chip[data-f].on')).map(x=>x.dataset.f);
+        const at=Array.from(document.querySelectorAll('.chip[data-t].on')).map(x=>x.dataset.t);
+        LOCS.forEach(loc=>{
+            if(!af.includes('all')&&!af.includes(loc.fandom))return;
+            if(!at.includes('all')&&!at.includes(loc.type))return;
+            const c=FANDOMS[loc.fandom]?.c||'#666';
+            const icon=L.divIcon({html:`<div style="background:${c};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);">${TYPES[loc.type]?.e||'📍'}</div>`,className:'',iconSize:[32,32],iconAnchor:[16,16]});
+            const m=L.marker([loc.lat,loc.lng],{icon}).addTo(this.map);
+            m.on('click',()=>this.showPopup(loc));this.markers.push(m);
+        });
+    }
+    showPopup(loc){
+        this.curLoc=loc;
+        document.getElementById('lpT').textContent=loc.name;
+        document.getElementById('lpD').textContent=loc.desc;
+        document.getElementById('lp').style.display='block';
+    }
+    hidePopup(){document.getElementById('lp').style.display='none'}
+    addRoute(){
+        if(!this.curLoc)return;
+        if(App.routes.cur.find(l=>l.id===this.curLoc.id)){alert('Уже в маршрутe');return}
+        App.routes.cur.push(this.curLoc);App.routes.save();this.hidePopup();App.routes.render();App.renderNav();
+        alert(`"${this.curLoc.name}" добавлено в маршрут`);
+    }
+    addCal(){
+        if(!this.curLoc)return;
+        const d=prompt('Дата (ГГГГ-ММ-ДД):',new Date().toISOString().split('T')[0]);if(!d)return;
+        const t=prompt('Время:','12:00');
+        App.plan.push({date:d,time:t||'12:00',locId:this.curLoc.id,locName:this.curLoc.name});App.planSave();
+        this.hidePopup();App.cal.render();App.renderPlan();
+    }
+    review(){
+        if(!this.curLoc)return;
+        document.querySelector('[data-t=reviews]').click();
+        document.getElementById('revLoc').value=this.curLoc.id;
+        this.hidePopup();
+    }
+}
+
+// ═══════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════
+class Calendar{
+    constructor(){this.date=new Date()}
+    render(){
+        const y=this.date.getFullYear(),m=this.date.getMonth();
+        document.getElementById('calT').textContent=new Date(y,m).toLocaleDateString('ru',{month:'long',year:'numeric'});
+        const days=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+        let html=days.map(d=>`<div class="cal-dn">${d}</div>`).join('');
+        const first=new Date(y,m,1).getDay()||7,total=new Date(y,m+1,0).getDate();
+        for(let i=1;i<first;i++)html+=`<div class="cal-day other">${new Date(y,m,0).getDay()-first+i+1}</div>`;
+        for(let d=1;d<=total;d++){
+            const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const today=new Date().toDateString()===new Date(y,m,d).toDateString();
+            const has=App.plan.some(p=>p.date===ds);
+            html+=`<div class="cal-day${today?' today':''}${has?' dot':''}" onclick="App.cal.addPoint('${ds}')">${d}</div>`;
+        }
+        const rem=42-(first-1+total);
+        for(let d=1;d<=rem;d++)html+=`<div class="cal-day other">${d}</div>`;
+        document.getElementById('calG').innerHTML=html;
+    }
+    prev(){this.date.setMonth(this.date.getMonth()-1);this.render()}
+    next(){this.date.setMonth(this.date.getMonth()+1);this.render()}
+    addPoint(date){
+        const id=prompt('ID заведения:\n'+LOCS.map(l=>`${l.id}: ${l.name}`).join('\n'));
+        if(!id)return;
+        const loc=LOCS.find(l=>l.id===parseInt(id));
+        if(!loc){alert('Неверный ID');return}
+        const time=prompt('Время:','12:00');
+        App.plan.push({date,time:time||'12:00',locId:loc.id,locName:loc.name});App.planSave();
+        this.render();App.renderPlan();
+    }
+}
+
+// ═══════════════════════════════════════
+// ROUTE OPTIMIZER
+// ═══════════════════════════════════════
+class RouteOptimizer{
+    dist(a,b){const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lng-a.lng)*Math.PI/180;const x=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+    nearest(locs){
+        if(locs.length<3)return locs;
+        const rem=[...locs],route=[rem.shift()];
+        while(rem.length){const last=route[route.length-1];let ni=0,nd=Infinity;rem.forEach((l,i)=>{const d=this.dist(last,l);if(d<nd){nd=d;ni=i}});route.push(rem.splice(ni,1)[0]);}
+        return route;
+    }
+    withHours(locs){
+        if(locs.length<3)return locs;
+        const now=new Date();const day=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][now.getDay()];const hour=now.getHours();
+        const rem=[...locs],route=[rem.shift()];
+        while(rem.length){const last=route[route.length-1];let bi=0,bs=Infinity;rem.forEach((l,i)=>{const d=this.dist(last,l);let ok=true;try{const h=(l.hours||{})[day]||'09:00-22:00';if(h==='closed')ok=false;else{const[o,c]=h.split('-').map(t=>parseInt(t));if(c<o)ok=hour>=o||hour<c;else ok=hour>=o&&hour<c;}}catch{}const s=d+(ok?0:1000);if(s<bs){bs=s;bi=i}});route.push(rem.splice(bi,1)[0]);}
+        return route;
+    }
+}
+
+// ═══════════════════════════════════════
+// ROUTES
+// ═══════════════════════════════════════
+class Routes{
+    constructor(){this.store=new Storage_;this.cur=this.store.get('curRoute',[]);this.saved=this.store.get('savedRoutes',[]);this.opt=new RouteOptimizer}
+    save(){this.store.set('curRoute',this.cur)}
+    saveSaved(){this.store.set('savedRoutes',this.saved)}
+    render(){
+        const card=document.getElementById('curCard'),pts=document.getElementById('curPts'),sum=document.getElementById('curSum');
+        if(!this.cur.length){card.style.display='none';return}
+        card.style.display='block';
+        let td=0,tt=0;
+        pts.innerHTML=this.cur.map((loc,i)=>{
+            let tr=0;if(i>0){const p=this.cur[i-1];const d=this.opt.dist(p,loc);td+=d;tr=Math.round(d/30*60);tt+=tr+60}else{tt+=60}
+            return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.7rem">${i+1}</div><div style="flex:1;font-weight:600;font-size:0.85rem">${loc.name}</div><div style="font-size:0.75rem;color:var(--muted)">${i>0?tr+' мин':'Старт'}</div></div>`;
+        }).join('');
+        sum.innerHTML=`<span style="font-size:0.8rem;color:var(--muted)">км: <strong style="color:var(--text)">${td.toFixed(1)}</strong></span><span style="font-size:0.8rem;color:var(--muted)">мин: <strong style="color:var(--text)">${tt}</strong></span><span style="font-size:0.8rem;color:var(--muted)">точек: <strong style="color:var(--text)">${this.cur.length}</strong></span>`;
+    }
+    optimizeNearest(){this.cur=this.opt.nearest(this.cur);this.save();this.render()}
+    optimizeHours(){this.cur=this.opt.withHours(this.cur);this.save();this.render()}
+    saveRoute(){
+        if(!this.cur.length)return;
+        const name=prompt('Название:','Мой маршрут');if(!name)return;
+        let td=0;for(let i=1;i<this.cur.length;i++)td+=this.opt.dist(this.cur[i-1],this.cur[i]);
+        this.saved.push({id:Date.now(),name,locs:this.cur.map(l=>l.id),dist:td,time:this.cur.length*60,created:new Date().toISOString()});
+        this.saveSaved();App.renderSaved();alert('Сохранено!');
+    }
+    share(){
+        if(!this.cur.length)return;
+        document.getElementById('shL').value=this.cur.map(l=>l.name).join(' → ');
+        document.getElementById('shM').style.display='flex';
+    }
+    clear(){this.cur=[];this.save();this.render()}
+    load(id){const r=this.saved.find(x=>x.id===id);if(!r)return;this.cur=r.locs.map(id=>LOCS.find(l=>l.id===id)).filter(Boolean);this.save();this.render()}
+    delete(id){if(!confirm('Удалить?'))return;this.saved=this.saved.filter(r=>r.id!==id);this.saveSaved();App.renderSaved()}
+}
+
+// ═══════════════════════════════════════
+// REVIEWS
+// ═══════════════════════════════════════
+class Reviews{
+    constructor(){this.store=new Storage_;this.data=this.store.get('reviews',[]);this.editId=null}
+    save(){this.store.set('reviews',this.data)}
+    render(){
+        const c=document.getElementById('revList'),q=document.getElementById('revQ')?.value?.toLowerCase()||'';
+        let r=this.data;if(q)r=r.filter(x=>x.locName.toLowerCase().includes(q));
+        if(!r.length){c.innerHTML='<div class="es"><i class="fas fa-comment-slash"></i><p>Отзывов нет</p></div>';return}
+        c.innerHTML=r.map(x=>{
+            const own=App.auth.user&&x.userId===App.auth.user.id;
+            return `<div class="card" style="margin-bottom:8px"><div class="cb">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:600;font-size:0.85rem">${x.userName}</span><span style="font-size:0.7rem;color:var(--muted)">${new Date(x.created).toLocaleDateString('ru')}</span></div>
+                <div style="color:var(--accent);font-size:0.8rem;margin-bottom:4px">${[1,2,3,4,5].map(i=>`<i class="fa-star ${i<=x.rating?'fas':'far'}"></i>`).join(' ')}</div>
+                <div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px"><i class="fas fa-map-marker-alt"></i> ${x.locName}</div>
+                <p style="font-size:0.85rem">${x.text}</p>
+                ${x.photo?`<img src="${x.photo}" style="max-width:100%;border-radius:8px;margin-top:6px">`:''}
+                ${own?`<div style="display:flex;gap:4px;margin-top:8px"><button class="btn btn-o btn-s" onclick="App.reviews.edit(${x.id})"><i class="fas fa-edit"></i></button><button class="btn btn-o btn-s" onclick="App.reviews.del(${x.id})"><i class="fas fa-trash"></i></button></div>`:''}
+            </div></div>`;
+        }).join('');
+    }
+    submit(e){
+        e.preventDefault();
+        if(!App.auth.user){App.auth.show();return}
+        const locId=parseInt(document.getElementById('revLoc').value);
+        const loc=LOCS.find(l=>l.id===locId);
+        const rating=parseInt(document.getElementById('revRat').value);
+        const text=document.getElementById('revTxt').value;
+        const photo=document.getElementById('revPh').value;
+        if(!rating){alert('Поставьте рейтинг');return}
+        if(this.editId){const r=this.data.find(x=>x.id===this.editId);if(r){r.rating=r;r.text=text;r.photo=photo;}this.editId=null;}
+        else{this.data.unshift({id:Date.now(),userId:App.auth.user.id,userName:App.auth.user.name,locId,locName:loc?.name||'—',rating,text,photo,created:new Date().toISOString()});}
+        this.save();
+        document.getElementById('revF').reset();
+        document.querySelectorAll('#revStars i').forEach(s=>s.classList.remove('on'));
+        document.getElementById('revRat').value=0;
+        this.render();
+    }
+    edit(id){const r=this.data.find(x=>x.id===id);if(!r)return;this.editId=id;document.getElementById('revLoc').value=r.locId;document.getElementById('revRat').value=r.rating;document.getElementById('revTxt').value=r.text;document.getElementById('revPh').value=r.photo||'';document.querySelectorAll('#revStars i').forEach(s=>s.classList.toggle('on',s.dataset.v<=r.rating));window.scrollTo(0,0);}
+    del(id){if(!confirm('Удалить?'))return;this.data=this.data.filter(r=>r.id!==id);this.save();this.render();}
+}
+
+// ═══════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════
+const App={
+    auth:new Auth(),
+    map:new MapManager(),
+    cal:new Calendar(),
+    routes:new Routes(),
+    reviews:new Reviews(),
+    plan:[],
+
+    init(){
+        this.plan=this.routes.store.get('plan',[]);
+        this.map.init();
+        this.renderFilters();
+        this.renderNav();
+        this.renderProfile();
+        this.renderSaved();
+        this.renderPlan();
+        this.routes.render();
+        this.reviews.render();
+        this.populateLocs();
+        this.initStars();
+        this.initTabs();
+    },
+
+    planSave(){this.routes.store.set('plan',this.plan)},
+
+    initTabs(){
+        document.querySelectorAll('.tab,.mbtn').forEach(el=>{
+            el.onclick=()=>{
+                const t=el.dataset.t;
+                document.querySelectorAll('.tab,.mbtn').forEach(x=>x.classList.remove('active'));
+                document.querySelectorAll(`[data-t="${t}"]`).forEach(x=>x.classList.add('active'));
+                document.querySelectorAll('.tc').forEach(x=>x.classList.remove('active'));
+                document.getElementById('t-'+t).classList.add('active');
+                if(t==='map')setTimeout(()=>App.map.map.invalidateSize(),100);
+                if(t==='planner')App.cal.render();
+                if(t==='reviews'){App.reviews.render();App.populateLocs();}
+                if(t==='routes')App.routes.render();
+            };
+        });
+    },
+
+    renderNav(){
+        const r=document.getElementById('navR');
+        if(this.auth.user){
+            r.innerHTML=`<div class="avatar" onclick="document.querySelector('[data-t=profile]').click()">${this.auth.user.name[0].toUpperCase()}</div><span class="uname">${this.auth.user.name}</span><button class="btn btn-o btn-s" onclick="App.auth.logout()"><i class="fas fa-sign-out-alt"></i></button>`;
+        } else {
+            r.innerHTML=`<button class="btn btn-p btn-s" onclick="App.auth.show()">Войти</button>`;
+        }
+    },
+
+    renderFilters(){
+        document.getElementById('fFandom').innerHTML=`<div class="chip on" data-f="all" onclick="App.toggleF(this)"><input type="checkbox" checked>Все</div>`+
+        Object.entries(FANDOMS).map(([k,v])=>`<div class="chip" data-f="${k}" onclick="App.toggleF(this)"><input type="checkbox"><span style="width:8px;height:8px;border-radius:50%;background:${v.c}"></span>${v.l}</div>`).join('');
+        document.getElementById('fType').innerHTML=`<div class="chip on" data-t="all" onclick="App.toggleT(this)"><input type="checkbox" checked>Все</div>`+
+        Object.entries(TYPES).map(([k,v])=>`<div class="chip" data-t="${k}" onclick="App.toggleT(this)"><input type="checkbox">${v.e} ${v.l}</div>`).join('');
+    },
+    toggleF(el){
+        const v=el.dataset.f;
+        if(v==='all'){document.querySelectorAll('.chip[data-f]').forEach(x=>{x.classList.remove('on');x.querySelector('input').checked=false});el.classList.add('on');el.querySelector('input').checked=true;}
+        else{document.querySelector('.chip[data-f=all"]').classList.remove('on');document.querySelector('.chip[data-f=all"] input').checked=false;el.classList.toggle('on');el.querySelector('input').checked=el.classList.contains('on');if(!document.querySelectorAll('.chip[data-f].on').length){document.querySelector('.chip[data-f=all"]').classList.add('on');document.querySelector('.chip[data-f=all"] input').checked=true;}}
+        App.map.renderMarkers();
+    },
+    toggleT(el){
+        const v=el.dataset.t;
+        if(v==='all'){document.querySelectorAll('.chip[data-t]').forEach(x=>{x.classList.remove('on');x.querySelector('input').checked=false});el.classList.add('on');el.querySelector('input').checked=true;}
+        else{document.querySelector('.chip[data-t=all"]').classList.remove('on');document.querySelector('.chip[data-t=all"] input').checked=false;el.classList.toggle('on');el.querySelector('input').checked=el.classList.contains('on');if(!document.querySelectorAll('.chip[data-t].on').length){document.querySelector('.chip[data-t=all"]').classList.add('on');document.querySelector('.chip[data-t=all"] input').checked=true;}}
+        App.map.renderMarkers();
+    },
+
+    renderCal(){App.cal.render()},
+    renderPlan(){
+        const c=document.getElementById('planPts'),a=document.getElementById('planAct');
+        if(!App.plan.length){c.innerHTML='<div class="es"><i class="fas fa-calendar-plus"></i><p>Выберите дату в календаре</p></div>';a.style.display='none';return}
+        a.style.display='flex';
+        c.innerHTML=App.plan.map((p,i)=>`
+            <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface);border-radius:8px;margin-bottom:4px">
+                <div style="width:32px;height:32px;border-radius:8px;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.75rem">${p.date.slice(8)}</div>
+                <div style="flex:1"><div style="font-weight:600;font-size:0.8rem">${p.locName}</div><div style="font-size:0.7rem;color:var(--muted)">${p.date} ${p.time}</div></div>
+                <button onclick="App.removePlan(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer"><i class="fas fa-times"></i></button>
+            </div>
+        `).join('');
+    },
+    removePlan(i){App.plan.splice(i,1);App.planSave();App.cal.render();App.renderPlan()},
+    clearPlan(){App.plan=[];App.planSave();App.cal.render();App.renderPlan()},
+    buildRoute(){
+        if(!App.plan.length){alert('Добавьте точки');return}
+        App.routes.cur=App.plan.map(p=>LOCS.find(l=>l.id===p.locId)).filter(Boolean);App.routes.save();
+        document.querySelector('[data-t=routes]').click();App.routes.render();
+    },
+
+    renderSaved(){
+        const c=document.getElementById('savedR');
+        if(!App.routes.saved.length){c.innerHTML='<div class="es"><i class="fas fa-star"></i><p>Нет сохранённых маршрутов</p></div>';return}
+        c.innerHTML=App.routes.saved.map(r=>`
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border-radius:8px;margin-bottom:6px">
+                <div style="flex:1"><div style="font-weight:600;font-size:0.85rem">${r.name}</div><div style="font-size:0.7rem;color:var(--muted)">${r.locs.length} точек • ${r.dist.toFixed(1)} км</div></div>
+                <button class="btn btn-p btn-s" onclick="App.routes.load(${r.id})"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-o btn-s" onclick="App.routes.delete(${r.id})"><i class="fas fa-trash"></i></button>
+            </div>
+        `).join('');
+    },
+
+    populateLocs(){const s=document.getElementById('revLoc');if(!s)return;s.innerHTML='<option value="">Выберите...</option>'+LOCS.map(l=>`<option value="${l.id}">${l.name}</option>`).join('');},
+
+    initStars(){
+        document.querySelectorAll('#revStars i').forEach(s=>{
+            s.onclick=()=>{
+                const v=s.dataset.v;document.getElementById('revRat').value=v;
+                document.querySelectorAll('#revStars i').forEach(x=>x.classList.toggle('on',x.dataset.v<=v));
+            };
+        });
+    },
+
+    renderProfile(){
+        const c=document.getElementById('profBody');
+        if(!this.auth.user){
+            c.innerHTML=`<div style="text-align:center;padding:30px"><p style="color:var(--muted);margin-bottom:12px">Войдите в аккаунт</p><button class="btn btn-p" onclick="App.auth.show()">Войти</button></div>`;
+            return;
+        }
+        const myR=this.reviews.data.filter(r=>r.userId===this.auth.user.id);
+        c.innerHTML=`
+            <div class="card" style="margin-bottom:16px">
+                <div class="cb" style="text-align:center">
+                    <div style="width:64px;height:64px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.5rem;margin:0 auto 10px">${this.auth.user.name[0].toUpperCase()}</div>
+                    <h4 style="margin-bottom:2px">${this.auth.user.name}</h4>
+                    <p style="color:var(--muted);font-size:0.8rem;margin-bottom:12px">${this.auth.user.email}</p>
+                    <div style="display:flex;gap:20px;justify-content:center;margin-bottom:12px">
+                        <div><div style="font-size:1.2rem;font-weight:800;color:var(--accent)">${myR.length}</div><div style="font-size:0.65rem;color:var(--muted)">Отзывов</div></div>
+                        <div><div style="font-size:1.2rem;font-weight:800;color:var(--accent)">${this.routes.saved.length}</div><div style="font-size:0.65rem;color:var(--muted)">Маршрутов</div></div>
+                    </div>
+                    <button class="btn btn-o btn-s" onclick="App.auth.logout()"><i class="fas fa-sign-out-alt me-1"></i>Выйти</button>
+                </div>
+            </div>
+            <div class="card" style="margin-bottom:16px">
+                <div class="ch"><h5><i class="fas fa-comments me-1"></i>Мои отзывы</h5></div>
+                <div class="cb">
+                    ${myR.length?myR.map(r=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between"><span style="font-weight:600;font-size:0.8rem">${r.locName}</span><span style="color:var(--accent);font-size:0.7rem">${[1,2,3,4,5].map(i=>`<i class="fa-star ${i<=r.rating?'fas':'far'}"></i>`).join('')}</span></div><p style="font-size:0.8rem;margin-top:2px">${r.text}</p><div style="display:flex;gap:4px;margin-top:4px"><button class="btn btn-o btn-s" onclick="App.reviews.edit(${r.id})"><i class="fas fa-edit"></i></button><button class="btn btn-o btn-s" onclick="App.reviews.del(${r.id})"><i class="fas fa-trash"></i></button></div></div>`).join(''):'<p class="text-muted" style="text-align:center;padding:10px">Нет отзывов</p>'}
+                </div>
+            </div>
+            <div class="card">
+                <div class="ch"><h5><i class="fas fa-route me-1"></i>Мои маршруты</h5></div>
+                <div class="cb">
+                    ${this.routes.saved.length?this.routes.saved.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="flex:1"><div style="font-weight:600;font-size:0.8rem">${r.name}</div><div style="font-size:0.7rem;color:var(--muted)">${r.locs.length} точек • ${r.dist.toFixed(1)} км</div></div><button class="btn btn-p btn-s" onclick="App.routes.load(${r.id})"><i class="fas fa-eye"></i></button><button class="btn btn-o btn-s" onclick="App.routes.delete(${r.id})"><i class="fas fa-trash"></i></button></div>`).join(''):'<p class="text-muted" style="text-align:center;padding:10px">Нет маршрутов</p>'}
+                </div>
+            </div>
+        `;
+    }
+};
+
+document.addEventListener('DOMContentLoaded',()=>App.init());
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+@model GeekTour.Web.Models.ViewModels.AdminDashboardViewModel
+@using GeekTour.Web.Models.Enums
+@{
+    ViewData["Title"] = "Дашборд";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="admin-page-header">
+    <h1>Панель управления</h1>
+    <p>Обзор системы GeekTour</p>
+</div>
+
+<!-- Stats -->
+<div class="admin-stats">
+    <div class="admin-stat-card">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div class="stat-value">@Model.TotalUsers</div>
+        <div class="stat-label">Пользователей</div>
+    </div>
+    <div class="admin-stat-card">
+        <div class="stat-icon"><i class="fas fa-store"></i></div>
+        <div class="stat-value">@Model.TotalLocations</div>
+        <div class="stat-label">Заведений</div>
+    </div>
+    <div class="admin-stat-card">
+        <div class="stat-icon"><i class="fas fa-comment-dots"></i></div>
+        <div class="stat-value">@Model.TotalReviews</div>
+        <div class="stat-label">Отзывов</div>
+    </div>
+    <div class="admin-stat-card">
+        <div class="stat-icon"><i class="fas fa-route"></i></div>
+        <div class="stat-value">@Model.TotalRoutes</div>
+        <div class="stat-label">Маршрутов</div>
+    </div>
+    <div class="admin-stat-card">
+        <div class="stat-icon" style="background:#DC3545;"><i class="fas fa-hourglass-half"></i></div>
+        <div class="stat-value">@Model.PendingReviews</div>
+        <div class="stat-label">На модерации</div>
+    </div>
+    <div class="admin-stat-card">
+        <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+        <div class="stat-value">@Model.VerifiedPartners</div>
+        <div class="stat-label">Вериф. партнёров</div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="admin-quick-actions">
+    <a asp-action="Users" class="btn btn-dark"><i class="fas fa-users"></i> Пользователи</a>
+    <a asp-action="Locations" class="btn btn-dark"><i class="fas fa-store"></i> Заведения</a>
+    <a asp-action="Pending" class="btn btn-dark"><i class="fas fa-clipboard-check"></i> Модерация</a>
+    <a asp-controller="Report" asp-action="Index" class="btn btn-outline-dark"><i class="fas fa-chart-bar"></i> Отчёты</a>
+</div>
+
+<div class="admin-two-col">
+    <!-- Recent Users -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-user-clock"></i> Последние пользователи</h5>
+            <a asp-action="Users" class="btn btn-sm btn-outline-dark btn-sm">Все</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Имя</th>
+                            <th>Email</th>
+                            <th>Роль</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.RecentUsers.Any())
+                        {
+                            @foreach (var user in Model.RecentUsers)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="header-user-avatar" style="width:28px;height:28px;font-size:0.7rem;">
+                                                @user.Name.Substring(0, 1).ToUpper()
+                                            </div>
+                                            @user.Name
+                                        </div>
+                                    </td>
+                                    <td>@user.Email</td>
+                                    <td>
+                                        <span class="badge role-@user.Role.ToString().ToLower()">@GetRoleDisplayName(user.Role)</span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="3" class="text-center text-muted py-3">Нет пользователей</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Reviews -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-clipboard-check"></i> Отзывы на модерации</h5>
+            <a asp-action="Pending" class="btn btn-sm btn-outline-dark btn-sm">Все</a>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.PendingReviewList.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Пользователь</th>
+                                <th>Заведение</th>
+                                <th>Рейтинг</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var review in Model.PendingReviewList)
+                            {
+                                <tr>
+                                    <td>@(review.User?.Name ?? "—")</td>
+                                    <td>@(review.Location?.Name ?? "—")</td>
+                                    <td>
+                                        <span class="rating-stars">
+                                            @for (int i = 1; i <= 5; i++)
+                                            {
+                                                <i class="fa-star @(i <= review.Rating ? "fas" : "far")"></i>
+                                            }
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <form method="post" asp-controller="Review" asp-action="Moderate" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="reviewId" value="@review.Id" />
+                                            <input type="hidden" name="approve" value="true" />
+                                            <button type="submit" class="btn btn-sm btn-dark" title="Одобрить"><i class="fas fa-check"></i></button>
+                                        </form>
+                                        <form method="post" asp-controller="Review" asp-action="Moderate" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="reviewId" value="@review.Id" />
+                                            <input type="hidden" name="approve" value="false" />
+                                            <button type="submit" class="btn btn-sm btn-outline-dark" title="Отклонить"><i class="fas fa-times"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="admin-empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <h4>Нет отзывов на модерации</h4>
+                    <p>Все отзывы проверены</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetRoleDisplayName(UserRole role) => role switch
+    {
+        UserRole.Admin => "Админ",
+        UserRole.Partner => "Партнёр",
+        UserRole.Tourist => "Турист",
+        _ => role.ToString()
+    };
+}

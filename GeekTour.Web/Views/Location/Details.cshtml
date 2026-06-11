@@ -1,0 +1,286 @@
+@model GeekTour.Web.Models.ViewModels.LocationDetailViewModel
+@using GeekTour.Web.Models.Enums
+@{
+    ViewData["Title"] = Model.Name;
+    var isAuthenticated = Context.Session.GetInt32("UserId") != null;
+
+    // Parse working hours
+    Dictionary<string, string>? workingHours = null;
+    try
+    {
+        if (!string.IsNullOrEmpty(Model.WorkingHoursJson))
+            workingHours = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(Model.WorkingHoursJson);
+    }
+    catch { /* ignore parse errors */ }
+}
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+        <div>
+            <h1 class="fw-bold mb-2">@Model.Name</h1>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="badge bg-dark">@GetLocationTypeName(Model.Type)</span>
+                <span class="text-muted"><i class="fas fa-tag"></i> @Model.CategoryName</span>
+            </div>
+        </div>
+        @if (isAuthenticated && (Context.Session.GetString("UserRole") == "Partner" || Context.Session.GetString("UserRole") == "Admin"))
+        {
+            <a href="/Location/Edit/@Model.Id?returnUrl=@Uri.EscapeDataString(Context.Request.Path + Context.Request.QueryString)" class="btn btn-outline-dark">
+                <i class="fas fa-edit"></i> Редактировать
+            </a>
+        }
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Images -->
+            @if (Model.ImagePaths.Any())
+            {
+                <div id="locationCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+                    <div class="carousel-inner" style="border-radius: 16px;">
+                        @for (int i = 0; i < Model.ImagePaths.Count; i++)
+                        {
+                            <div class="carousel-item @(i == 0 ? "active" : "")">
+                                <img src="@Model.ImagePaths[i]" class="d-block w-100" alt="@Model.Name"
+                                     style="height: 400px; object-fit: cover; border-radius: 16px;" />
+                            </div>
+                        }
+                    </div>
+                    @if (Model.ImagePaths.Count > 1)
+                    {
+                        <button class="carousel-control-prev" type="button" data-bs-target="#locationCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#locationCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+                    }
+                </div>
+            }
+
+            <!-- Rating & Address -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rating-stars d-flex align-items-center me-4">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                if (i <= Math.Round(Model.AverageRating))
+                                {
+                                    <i class="fas fa-star"></i>
+                                }
+                                else
+                                {
+                                    <i class="far fa-star"></i>
+                                }
+                            }
+                            <span class="ms-2 fs-5 fw-bold">@Model.AverageRating.ToString("F1")</span>
+                            <span class="text-muted ms-1">(@Model.ReviewCount отзывов)</span>
+                        </div>
+                    </div>
+                    <p class="mb-1"><i class="fas fa-map-marker-alt me-2"></i>@Model.Address</p>
+                    <p class="text-muted small mb-0">
+                        <i class="fas fa-map-pin me-1"></i>@Model.Latitude.ToString("F6"), @Model.Longitude.ToString("F6")
+                    </p>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4><i class="fas fa-align-left me-2"></i>Описание</h4>
+                    <p class="mb-0">@(string.IsNullOrEmpty(Model.Description) ? "Описание отсутствует." : Model.Description)</p>
+                </div>
+            </div>
+
+            <!-- Fandoms -->
+            @if (Model.Fandoms.Any())
+            {
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h4><i class="fas fa-bookmark me-2"></i>Фандомы</h4>
+                        <div>
+                            @foreach (var fandom in Model.Fandoms)
+                            {
+                                <span class="badge bg-light text-dark border me-2 mb-2 fs-6">@fandom.Name</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Working Hours -->
+            @if (workingHours != null && workingHours.Count > 0)
+            {
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h4><i class="fas fa-clock me-2"></i>Часы работы</h4>
+                        <table class="table table-sm table-borderless mb-0">
+                            <tbody>
+                                @{
+                                    var dayNames = new Dictionary<string, string>
+                                    {
+                                        {"monday", "Понедельник"},
+                                        {"tuesday", "Вторник"},
+                                        {"wednesday", "Среда"},
+                                        {"thursday", "Четверг"},
+                                        {"friday", "Пятница"},
+                                        {"saturday", "Суббота"},
+                                        {"sunday", "Воскресенье"}
+                                    };
+                                }
+                                @foreach (var day in dayNames)
+                                {
+                                    if (workingHours.ContainsKey(day.Key))
+                                    {
+                                        <tr>
+                                            <td class="fw-bold" style="width: 150px;">@day.Value</td>
+                                            <td>@workingHours[day.Key]</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+
+            <!-- Reviews Section -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0"><i class="fas fa-comments me-2"></i>Отзывы (@Model.ReviewCount)</h4>
+                        @if (isAuthenticated)
+                        {
+                            <a asp-controller="Review" asp-action="Create" asp-route-locationId="@Model.Id"
+                               class="btn btn-dark btn-sm">
+                                <i class="fas fa-plus"></i> Написать отзыв
+                            </a>
+                        }
+                    </div>
+
+                    @if (Model.Reviews.Any())
+                    {
+                        @foreach (var review in Model.Reviews)
+                        {
+                            <div class="border-bottom py-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <span class="fw-bold"><i class="fas fa-user-circle me-1"></i>@review.UserName</span>
+                                        <span class="rating-stars ms-1">
+                                            @for (var j = 1; j <= 5; j++)
+                                            {
+                                                if (j <= review.Rating)
+                                                {
+                                                    <i class="fas fa-star"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="far fa-star"></i>
+                                                }
+                                            }
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">@review.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+                                </div>
+                                <p class="mb-2">@review.Text</p>
+
+                                @if (review.PhotoPaths.Any())
+                                {
+                                    <div class="d-flex flex-wrap gap-2 mb-2">
+                                        @foreach (var photo in review.PhotoPaths)
+                                        {
+                                            <img src="@photo" alt="Фото к отзыву"
+                                                 class="rounded" style="width: 80px; height: 80px; object-fit: cover;" />
+                                        }
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(review.OwnerResponse))
+                                {
+                                    <div class="ms-4 mt-2 mb-0 p-3 bg-light rounded" style="border-left: 4px solid #000000;">
+                                        <small class="text-muted d-block mb-1">
+                                            <i class="fas fa-reply me-1"></i>Ответ владельца
+                                            @if (review.ResponseDate.HasValue)
+                                            {
+                                                <span>от @review.ResponseDate.Value.ToString("dd.MM.yyyy")</span>
+                                            }
+                                        </small>
+                                        <p class="mb-0">@review.OwnerResponse</p>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-comment-slash fa-2x mb-2 d-block"></i>
+                            <p>Пока нет отзывов. Будьте первым!</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Info Card -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold">Информация</h5>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><i class="fas fa-store me-2"></i><strong>Тип:</strong> @GetLocationTypeName(Model.Type)</li>
+                        <li class="mb-2"><i class="fas fa-tag me-2"></i><strong>Категория:</strong> @Model.CategoryName</li>
+                        <li class="mb-2"><i class="fas fa-map-marker-alt me-2"></i><strong>Адрес:</strong> @Model.Address</li>
+                        <li><i class="fas fa-star me-2"></i><strong>Рейтинг:</strong> @Model.AverageRating.ToString("F1") / 5</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Map (interactive) -->
+            <div class="card mb-4">
+                <div class="card-body p-0">
+                    <div class="card-header bg-white">
+                        <h5 class="card-title fw-bold mb-0"><i class="fas fa-map me-2"></i>На карте</h5>
+                    </div>
+                    <div id="detailMap" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+}
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var lat = @Model.Latitude;
+        var lng = @Model.Longitude;
+        var name = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Name));
+
+        var map = L.map('detailMap').setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        L.marker([lat, lng])
+            .addTo(map)
+            .bindPopup('<b>' + name + '</b>');
+    </script>
+}
+
+@functions {
+    private string GetLocationTypeName(LocationType type) => type switch
+    {
+        LocationType.Cafe => "Кафе",
+        LocationType.Shop => "Магазин",
+        LocationType.ArtObject => "Арт-объект",
+        _ => type.ToString()
+    };
+}

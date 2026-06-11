@@ -1,0 +1,89 @@
+@model List<GeekTour.Web.Models.Entities.Category>
+@{
+    ViewData["Title"] = "Категории";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="admin-page-header">
+    <h1>Управление категориями</h1>
+    <p>Справочник категорий заведений: @Model.Count</p>
+</div>
+
+<div class="row g-4">
+    <!-- Add Form -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-plus-circle"></i> Добавить категорию</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="AddCategory">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Название</label>
+                        <input type="text" id="name" name="name" class="form-control" placeholder="Например: Антикафе" required maxlength="100" />
+                    </div>
+                    <button type="submit" class="btn btn-dark w-100"><i class="fas fa-plus me-1"></i>Добавить</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Подсказка</h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-0">Категории используются для классификации заведений. Примеры: Кафе, Магазин, Арт-объект, Антикафе, Книжный.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- List -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Все категории</h5>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Название</th>
+                                    <th>Удаление</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var category in Model)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">
+                                            <i class="fas fa-tag me-2 text-muted"></i>@category.Name
+                                        </td>
+                                        <td>
+                                            <form method="post" asp-action="DeleteCategory" onsubmit="return confirm('Удалить категорию @category.Name?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@category.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-dark"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="admin-empty-state">
+                        <i class="fas fa-tags"></i>
+                        <h4>Нет категорий</h4>
+                        <p>Добавьте первую категорию через форму слева</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

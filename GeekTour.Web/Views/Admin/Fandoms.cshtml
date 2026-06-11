@@ -1,0 +1,122 @@
+@model List<GeekTour.Web.Models.Entities.Fandom>
+@using GeekTour.Web.Models.Enums
+@{
+    ViewData["Title"] = "Фандомы";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="admin-page-header">
+    <h1>Управление фандомами</h1>
+    <p>Справочник фандомов: @Model.Count</p>
+</div>
+
+<div class="row g-4">
+    <!-- Add Form -->
+    <div class="col-lg-4">
+        <div class="card border-primary" style="border-color: var(--color-border) !important;">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-plus-circle"></i> Добавить фандом</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-action="AddFandom">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Название</label>
+                        <input type="text" id="name" name="name" class="form-control" placeholder="Например: Киберпанк 2077" required maxlength="100" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Категория</label>
+                        <select id="category" name="category" class="form-select" required>
+                            @foreach (FandomCategory category in Enum.GetValues(typeof(FandomCategory)))
+                            {
+                                <option value="@category">@GetCategoryDisplayName(category)</option>
+                            }
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-dark w-100"><i class="fas fa-plus me-1"></i>Добавить</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Category legend -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle"></i> Категории</h6>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-sm-6">Anime</dt>
+                    <dd class="col-sm-6 text-muted">Аниме, манга</dd>
+                    <dt class="col-sm-6">Comics</dt>
+                    <dd class="col-sm-6 text-muted">Комиксы, Marvel, DC</dd>
+                    <dt class="col-sm-6">VideoGames</dt>
+                    <dd class="col-sm-6 text-muted">Видеоигры</dd>
+                    <dt class="col-sm-6">BoardGames</dt>
+                    <dd class="col-sm-6 text-muted">Настольные игры</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- List -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Все фандомы</h5>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Название</th>
+                                    <th>Категория</th>
+                                    <th>Удаление</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var fandom in Model)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@fandom.Name</td>
+                                        <td>
+                                            <span class="badge bg-secondary">@GetCategoryDisplayName(fandom.Category)</span>
+                                        </td>
+                                        <td>
+                                            <form method="post" asp-action="DeleteFandom" onsubmit="return confirm('Удалить @fandom.Name?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@fandom.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-dark"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="admin-empty-state">
+                        <i class="fas fa-layer-group"></i>
+                        <h4>Нет фандомов</h4>
+                        <p>Добавьте первый фандом через форму слева</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetCategoryDisplayName(FandomCategory category) => category switch
+    {
+        FandomCategory.Anime => "Аниме",
+        FandomCategory.Comics => "Комиксы",
+        FandomCategory.VideoGames => "Видеоигры",
+        FandomCategory.BoardGames => "Настолки",
+        _ => category.ToString()
+    };
+}

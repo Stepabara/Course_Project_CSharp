@@ -1,0 +1,85 @@
+@model GeekTour.Web.Models.ViewModels.WeightCoefficientsViewModel
+@{
+    ViewData["Title"] = "Настройки";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="admin-page-header">
+    <h1>Настройки системы</h1>
+    <p>Параметры оптимизации маршрутов</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-sliders-h"></i> Коэффициенты оптимизации маршрутов</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Настройте приоритеты оптимизации. Каждый коэффициент определяет вклад соответствующего фактора в общую оценку маршрута. Значения от 0 до 1.
+                </p>
+
+                <form method="post" asp-action="Settings">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-4">
+                        <label asp-for="DistanceWeight" class="form-label fw-bold">
+                            <i class="fas fa-ruler-horizontal me-1"></i>Вес расстояния
+                        </label>
+                        <input asp-for="DistanceWeight" type="number" class="form-control" min="0" max="1" step="0.1" />
+                        <div class="form-text">Влияние расстояния между точками (0.0 — 1.0)</div>
+                        <span asp-validation-for="DistanceWeight" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="TimeWeight" class="form-label fw-bold">
+                            <i class="fas fa-hourglass-half me-1"></i>Вес времени
+                        </label>
+                        <input asp-for="TimeWeight" type="number" class="form-control" min="0" max="1" step="0.1" />
+                        <div class="form-text">Влияние времени в пути (0.0 — 1.0)</div>
+                        <span asp-validation-for="TimeWeight" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="RatingWeight" class="form-label fw-bold">
+                            <i class="fas fa-star me-1"></i>Вес рейтинга
+                        </label>
+                        <input asp-for="RatingWeight" type="number" class="form-control" min="0" max="1" step="0.1" />
+                        <div class="form-text">Влияние рейтинга заведений (0.0 — 1.0)</div>
+                        <span asp-validation-for="RatingWeight" class="text-danger small"></span>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Сумма коэффициентов:</strong> рекомендуется не более 1.0 для корректной нормализации.
+                    </div>
+
+                    <button type="submit" class="btn btn-dark"><i class="fas fa-save me-1"></i>Сохранить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-question-circle"></i> Справка</h6>
+            </div>
+            <div class="card-body">
+                <dl class="small">
+                    <dt>Расстояние</dt>
+                    <dd class="text-muted">При высоком значении маршрут будет строиться так, чтобы минимизировать общее расстояние между точками.</dd>
+                    <dt class="mt-3">Время</dt>
+                    <dd class="text-muted">При высоком значении учитывается время в пути и часы работы заведений.</dd>
+                    <dt class="mt-3">Рейтинг</dt>
+                    <dd class="text-muted">При высоком значении предпочтение отдаётся заведениям с высоким рейтингом.</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

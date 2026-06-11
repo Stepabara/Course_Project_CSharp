@@ -1,0 +1,106 @@
+@model List<GeekTour.Web.Models.ViewModels.AdminLocationViewModel>
+@using GeekTour.Web.Models.Enums
+@{
+    ViewData["Title"] = "Заведения";
+    Layout = "~/Views/Admin/_AdminLayout.cshtml";
+}
+
+<div class="admin-page-header">
+    <h1>Управление заведениями</h1>
+    <p>Всего: @Model.Count заведений</p>
+</div>
+
+<div class="admin-quick-actions">
+    <a asp-controller="Location" asp-action="Create" class="btn btn-dark"><i class="fas fa-plus"></i> Добавить заведение</a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 admin-table">
+                <thead>
+                    <tr>
+                        <th>Заведение</th>
+                        <th>Тип</th>
+                        <th>Владелец</th>
+                        <th>Рейтинг</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Any())
+                    {
+                        @foreach (var loc in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@loc.Name</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">@GetTypeDisplayName(loc.Type)</span>
+                                </td>
+                                <td>@loc.OwnerName</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="rating-stars" style="font-size:0.8rem;">
+                                            @for (int i = 1; i <= 5; i++)
+                                            {
+                                                <i class="fa-star @(i <= Math.Round(loc.AverageRating) ? "fas" : "far")"></i>
+                                            }
+                                        </span>
+                                        <span class="fw-bold small">@loc.AverageRating.ToString("F1")</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (loc.IsActive)
+                                    {
+                                        <span class="badge bg-dark"><i class="fas fa-check me-1"></i>Активно</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge" style="background:#f5f5f5;color:#999;border:1px solid #e0e0e0;">Отключено</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <a asp-controller="Location" asp-action="Details" asp-route-id="@loc.Id" class="btn btn-sm btn-outline-dark" title="Просмотр"><i class="fas fa-eye"></i></a>
+                                        <a href="/Location/Edit/@loc.Id?returnUrl=@System.Net.WebUtility.UrlEncode(Url.Action("Locations", "Admin"))" class="btn btn-sm btn-outline-dark" title="Редактировать"><i class="fas fa-edit"></i></a>
+                                        <form method="post" asp-controller="Location" asp-action="Delete" class="d-inline" onsubmit="return confirm('Удалить заведение @loc.Name?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@loc.Id" />
+                                            <input type="hidden" name="returnUrl" value="@Url.Action("Locations", "Admin")" />
+                                            <button type="submit" class="btn btn-sm btn-outline-dark" title="Удалить"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6">
+                                <div class="admin-empty-state">
+                                    <i class="fas fa-store"></i>
+                                    <h4>Нет заведений</h4>
+                                    <p>Создайте первое заведение для начала работы</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetTypeDisplayName(LocationType type) => type switch
+    {
+        LocationType.Cafe => "Кафе",
+        LocationType.Shop => "Магазин",
+        LocationType.ArtObject => "Арт-объект",
+        _ => type.ToString()
+    };
+}

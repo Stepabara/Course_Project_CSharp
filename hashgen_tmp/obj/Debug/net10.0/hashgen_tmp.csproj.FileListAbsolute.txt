@@ -1,0 +1,14 @@
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\bin\Debug\net10.0\hashgen_tmp.exe
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\bin\Debug\net10.0\hashgen_tmp.deps.json
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\bin\Debug\net10.0\hashgen_tmp.runtimeconfig.json
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\bin\Debug\net10.0\hashgen_tmp.dll
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\bin\Debug\net10.0\hashgen_tmp.pdb
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\obj\Debug\net10.0\hashgen_tmp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\obj\Debug\net10.0\hashgen_tmp.AssemblyInfoInputs.cache
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\obj\Debug\net10.0\hashgen_tmp.AssemblyInfo.cs
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\obj\Debug\net10.0\hashgen_tmp.csproj.CoreCompileInputs.cache
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\obj\Debug\net10.0\hashgen_tmp.dll
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\obj\Debug\net10.0\refint\hashgen_tmp.dll
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\obj\Debug\net10.0\hashgen_tmp.pdb
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\obj\Debug\net10.0\hashgen_tmp.genruntimeconfig.cache
+C:\Users\stepa\OneDrive\Desktop\Курсовой Кпияп\hashgen_tmp\obj\Debug\net10.0\ref\hashgen_tmp.dll

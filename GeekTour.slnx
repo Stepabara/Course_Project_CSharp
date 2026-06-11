@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="GeekTour.Tests/GeekTour.Tests.csproj" />
+  <Project Path="GeekTour.Web/GeekTour.Web.csproj" />
+</Solution>

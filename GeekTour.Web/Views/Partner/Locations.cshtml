@@ -1,0 +1,305 @@
+@model List<GeekTour.Web.Models.Entities.Location>
+@using GeekTour.Web.Models.Enums
+@{
+    ViewData["Title"] = "Мои заведения";
+    var fandoms = ViewBag.Fandoms as List<Fandom> ?? new List<Fandom>();
+    var categories = ViewBag.Categories as List<Category> ?? new List<Category>();
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="fas fa-store"></i> Мои заведения</h2>
+        <button type="button" class="btn btn-dark" onclick="openCreateModal()">
+            <i class="fas fa-plus me-1"></i>Добавить заведение
+        </button>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (Model.Count == 0)
+    {
+        <div class="card" style="border-radius: 16px; max-width: 500px; margin: 40px auto;">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-store fa-3x mb-3 text-muted"></i>
+                <h5 class="text-muted">У вас пока нет заведений</h5>
+                <p class="text-muted mb-0">Перейдите в кабинет партнёра чтобы добавить заведение</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var loc in Model)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100" style="border-radius: 12px; border-color: #E0E0E0;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="fw-bold mb-0">@loc.Name</h6>
+                                @if (loc.IsActive)
+                                {
+                                    <span class="badge bg-dark">Активно</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Отключено</span>
+                                }
+                            </div>
+                            <p class="small text-muted mb-2">@(loc.Description?.Length > 80 ? loc.Description[..80] + "..." : loc.Description)</p>
+                            <div class="d-flex gap-2 small text-muted mb-3">
+                                <span><i class="fas fa-tag"></i> @(loc.Category?.Name ?? "—")</span>
+                                <span><i class="fas fa-star"></i> @loc.AverageRating.ToString("F1")</span>
+                            </div>
+                            <div class="d-flex gap-1">
+                                <button type="button" class="btn btn-sm btn-outline-dark" onclick="openEditModal(@loc.Id, '@loc.Name', '@loc.Description', @((int)loc.Type), @loc.CategoryId, '@loc.Address', @loc.Latitude, @loc.Longitude, '@loc.WorkingHoursJson', @loc.IsActive.ToString().ToLower())">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <form method="post" asp-action="DeleteLocation" class="d-inline" onsubmit="return confirm('Удалить @loc.Name?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@loc.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-dark"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal fade" id="locationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalTitle"><i class="fas fa-plus-circle me-2"></i>Добавление заведения</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="locationForm" method="post" action="/Partner/CreateLocation">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" id="locId" value="0" />
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Название <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="Name" id="locName" required maxlength="200" placeholder="Название заведения" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Адрес <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="Address" id="locAddress" required maxlength="500" placeholder="Полный адрес" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Описание</label>
+                        <textarea class="form-control" name="Description" id="locDesc" rows="3" placeholder="Опишите заведение..."></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Тип <span class="text-danger">*</span></label>
+                            <select class="form-select" name="Type" id="locType" required>
+                                <option value="">-- Выберите --</option>
+                                @foreach (var t in Enum.GetValues<LocationType>())
+                                {
+                                    <option value="@((int)t)">@GetLocationTypeName(t)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Категория <span class="text-danger">*</span></label>
+                            <select class="form-select" name="CategoryId" id="locCategory" required>
+                                <option value="">-- Выберите --</option>
+                                @foreach (var c in categories)
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Координаты</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="Latitude" id="locLat" step="any" placeholder="53.9045" />
+                                <input type="number" class="form-control" name="Longitude" id="locLng" step="any" placeholder="27.5615" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fandoms -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Фандомы</label>
+                        <div class="fandom-grid">
+                            @foreach (var f in fandoms)
+                            {
+                                <label class="fandom-chip">
+                                    <input type="checkbox" name="FandomIds" value="@f.Id" class="fandom-cb" />
+                                    <span>@f.Name</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Working Hours -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Часы работы</label>
+                        <div id="whContainer">
+                            @foreach (var day in new[] { ("monday","Пн"), ("tuesday","Вт"), ("wednesday","Ср"), ("thursday","Чт"), ("friday","Пт"), ("saturday","Сб"), ("sunday","Вс") })
+                            {
+                                <div class="wh-row">
+                                    <div class="wh-day">
+                                        <span class="fw-semibold">@day.Item2</span>
+                                        <div class="form-check form-switch ms-2">
+                                            <input class="form-check-input wh-on" type="checkbox" id="wh-on-@day.Item1" checked="@(day.Item1 != "saturday" && day.Item1 != "sunday")" onchange="toggleWh('@day.Item1')" />
+                                            <label class="form-check-label small" id="wh-lbl-@day.Item1">@(day.Item1 == "saturday" || day.Item1 == "sunday" ? "Закрыто" : "Открыто")</label>
+                                        </div>
+                                    </div>
+                                    <div class="wh-inputs" id="wh-inp-@day.Item1" style="@(day.Item1 == "saturday" || day.Item1 == "sunday" ? "display:none" : "")">
+                                        <input type="time" class="form-control wh-open" value="09:00" id="wh-open-@day.Item1" />
+                                        <span class="text-muted">—</span>
+                                        <input type="time" class="form-control wh-close" value="18:00" id="wh-close-@day.Item1" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" name="WorkingHoursJson" id="locWhJson" />
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="IsActive" id="locActive" value="true" checked />
+                        <label class="form-check-label fw-bold" for="locActive">Активно</label>
+                    </div>
+                </div>
+                <div class="modal-footer" style="background:#F5F5F5;border-top:1px solid #E0E0E0;">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-dark btn-lg px-4" id="modalSubmitBtn"><i class="fas fa-plus me-2"></i>Добавить заведение</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .fandom-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+        .fandom-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 12px; border: 1px solid var(--color-border);
+            border-radius: 18px; cursor: pointer; font-size: 0.8rem;
+            transition: all 0.15s; user-select: none; margin: 0;
+        }
+        .fandom-chip:hover { border-color: #999; }
+        .fandom-chip input { display: none; }
+        .fandom-chip:has(input:checked) { background: #000; color: #fff; border-color: #000; }
+
+        .wh-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #eee; }
+        .wh-row:last-child { border-bottom: none; }
+        .wh-day { display: flex; align-items: center; min-width: 120px; gap: 6px; }
+        .wh-inputs { display: flex; align-items: center; gap: 4px; }
+        .wh-inputs input[type="time"] { width: 90px; height: 32px; padding: 0 6px; font-size: 0.8rem; }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        var modal = null;
+
+        function openCreateModal() {
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus-circle me-2"></i>Добавление заведения';
+            document.getElementById('modalSubmitBtn').innerHTML = '<i class="fas fa-plus me-2"></i>Добавить заведение';
+            document.getElementById('locationForm').action = '/Partner/CreateLocation';
+            document.getElementById('locId').value = '0';
+            document.getElementById('locationForm').reset();
+            // Reset working hours
+            ['monday','tuesday','wednesday','thursday','friday'].forEach(d => {
+                document.getElementById('wh-on-' + d).checked = true;
+                document.getElementById('wh-inp-' + d).style.display = '';
+                document.getElementById('wh-lbl-' + d).textContent = 'Открыто';
+            });
+            ['saturday','sunday'].forEach(d => {
+                document.getElementById('wh-on-' + d).checked = false;
+                document.getElementById('wh-inp-' + d).style.display = 'none';
+                document.getElementById('wh-lbl-' + d).textContent = 'Закрыто';
+            });
+            document.querySelectorAll('.fandom-cb').forEach(cb => cb.checked = false);
+            syncWh();
+            modal = new bootstrap.Modal(document.getElementById('locationModal'));
+            modal.show();
+        }
+
+        function openEditModal(id, name, desc, type, categoryId, address, lat, lng, whJson, isActive) {
+            document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Редактирование';
+            document.getElementById('modalSubmitBtn').innerHTML = '<i class="fas fa-save me-2"></i>Сохранить изменения';
+            document.getElementById('locationForm').action = '/Partner/UpdateLocation';
+            document.getElementById('locId').value = id;
+            document.getElementById('locName').value = name;
+            document.getElementById('locDesc').value = desc || '';
+            document.getElementById('locType').value = type;
+            document.getElementById('locCategory').value = categoryId;
+            document.getElementById('locAddress').value = address;
+            document.getElementById('locLat').value = lat;
+            document.getElementById('locLng').value = lng;
+            document.getElementById('locActive').checked = isActive;
+
+            // Parse working hours
+            try {
+                var wh = JSON.parse(whJson || '{}');
+                ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(d => {
+                    var val = wh[d];
+                    if (val === 'closed') {
+                        document.getElementById('wh-on-' + d).checked = false;
+                        document.getElementById('wh-inp-' + d).style.display = 'none';
+                        document.getElementById('wh-lbl-' + d).textContent = 'Закрыто';
+                    } else if (val) {
+                        var parts = val.split('-');
+                        document.getElementById('wh-on-' + d).checked = true;
+                        document.getElementById('wh-inp-' + d).style.display = '';
+                        document.getElementById('wh-lbl-' + d).textContent = 'Открыто';
+                        if (parts[0]) document.getElementById('wh-open-' + d).value = parts[0];
+                        if (parts[1]) document.getElementById('wh-close-' + d).value = parts[1];
+                    }
+                });
+            } catch(e) {}
+
+            syncWh();
+            modal = new bootstrap.Modal(document.getElementById('locationModal'));
+            modal.show();
+        }
+
+        function toggleWh(d) {
+            var on = document.getElementById('wh-on-' + d).checked;
+            document.getElementById('wh-inp-' + d).style.display = on ? '' : 'none';
+            document.getElementById('wh-lbl-' + d).textContent = on ? 'Открыто' : 'Закрыто';
+            syncWh();
+        }
+
+        function syncWh() {
+            var days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+            var r = {};
+            days.forEach(d => {
+                if (!document.getElementById('wh-on-' + d).checked) r[d] = 'closed';
+                else r[d] = document.getElementById('wh-open-' + d).value + '-' + document.getElementById('wh-close-' + d).value;
+            });
+            document.getElementById('locWhJson').value = JSON.stringify(r);
+        }
+
+        // Sync working hours before form submit
+        document.getElementById('locationForm').addEventListener('submit', function() {
+            syncWh();
+        });
+    </script>
+}
+
+@functions {
+    private string GetLocationTypeName(LocationType type) => type switch
+    {
+        LocationType.Cafe => "Кафе",
+        LocationType.Shop => "Магазин",
+        LocationType.ArtObject => "Арт-объект",
+        _ => type.ToString()
+    };
+}
