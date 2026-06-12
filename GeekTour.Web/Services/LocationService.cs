@@ -44,7 +44,9 @@ public class LocationService : ILocationService
         if (filter.CategoryId.HasValue)
             query = query.Where(l => l.CategoryId == filter.CategoryId.Value);
 
-        if (filter.FandomId.HasValue)
+        if (filter.FandomIds != null && filter.FandomIds.Any())
+            query = query.Where(l => l.LocationFandoms.Any(lf => filter.FandomIds.Contains(lf.FandomId)));
+        else if (filter.FandomId.HasValue)
             query = query.Where(l => l.LocationFandoms.Any(lf => lf.FandomId == filter.FandomId.Value));
 
         if (filter.MinRating.HasValue)
@@ -69,8 +71,10 @@ public class LocationService : ILocationService
             AverageRating = l.AverageRating,
             ReviewCount = l.ReviewCount,
             MainImagePath = l.Images.FirstOrDefault(i => i.IsMain)?.ImagePath ?? l.Images.FirstOrDefault()?.ImagePath,
+            FandomIds = l.LocationFandoms.Select(lf => lf.FandomId).ToList(),
             FandomNames = l.LocationFandoms.Select(lf => lf.Fandom.Name).ToList(),
             CategoryName = l.Category.Name,
+            WorkingHoursJson = l.WorkingHoursJson,
             ActivePromotions = l.Promotions.Where(p => p.IsActive).ToList()
         }).ToList();
     }
@@ -259,8 +263,10 @@ public class LocationService : ILocationService
             AverageRating = l.AverageRating,
             ReviewCount = l.ReviewCount,
             MainImagePath = l.Images.FirstOrDefault(i => i.IsMain)?.ImagePath ?? l.Images.FirstOrDefault()?.ImagePath,
+            FandomIds = l.LocationFandoms.Select(lf => lf.FandomId).ToList(),
             FandomNames = l.LocationFandoms.Select(lf => lf.Fandom.Name).ToList(),
             CategoryName = l.Category.Name,
+            WorkingHoursJson = l.WorkingHoursJson,
             ActivePromotions = l.Promotions.Where(p => p.IsActive).ToList()
         }).ToList();
     }

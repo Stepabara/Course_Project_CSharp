@@ -34,6 +34,57 @@ public class ReviewController : Controller
         return RedirectToAction("Details", "Location", new { id = model.LocationId });
     }
 
+    // ═══ API for Reviews Tab ═══
+    [HttpGet]
+    public async Task<IActionResult> GetReviews([FromQuery] string? searchLocation = null, [FromQuery] int? userId = null)
+    {
+        var reviews = await _reviewService.GetFilteredAsync(searchLocation, userId);
+        return Json(reviews.Select(r => new
+        {
+            r.Id,
+            r.UserName,
+            r.UserAvatar,
+            r.LocationId,
+            r.LocationName,
+            r.Rating,
+            r.Text,
+            r.PhotoPaths,
+            r.CreatedAt,
+            r.OwnerResponse,
+            r.ResponseDate
+        }));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetMyReviews()
+    {
+        var currentUserId = AccountController.GetUserId(HttpContext);
+        if (!currentUserId.HasValue) return Json(new List<object>());
+        return await GetReviews(null, currentUserId.Value);
+    }
+
+    [HttpPut]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateReview(int id, int rating, string text)
+    {
+        var userId = AccountController.GetUserId(HttpContext);
+        if (!userId.HasValue) return Unauthorized();
+        var success = await _reviewService.UpdateAsync(id, userId.Value, rating, text);
+        if (!success) return Forbid();
+        return Ok(new { success = true });
+    }
+
+    [HttpDelete]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteReview(int id)
+    {
+        var userId = AccountController.GetUserId(HttpContext);
+        if (!userId.HasValue) return Unauthorized();
+        var success = await _reviewService.DeleteAsync(id, userId.Value);
+        if (!success) return Forbid();
+        return Ok(new { success = true });
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Respond(ReviewResponseViewModel model)

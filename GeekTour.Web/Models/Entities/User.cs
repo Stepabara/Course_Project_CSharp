@@ -27,6 +27,9 @@ public class User
 
     public bool IsVerified { get; set; }
 
+    [MaxLength(500)]
+    public string? AvatarPath { get; set; }
+
     public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties

@@ -32,6 +32,29 @@ public class LocationController : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> GetLocationData(int id)
+    {
+        var location = await _locationService.GetByIdAsync(id);
+        if (location == null) return NotFound();
+        return Json(new
+        {
+            location.Id,
+            location.Name,
+            location.Description,
+            location.Address,
+            location.Latitude,
+            location.Longitude,
+            location.AverageRating,
+            location.Type,
+            location.ReviewCount,
+            location.CategoryName,
+            FandomNames = location.Fandoms.Select(f => f.Name).ToList(),
+            MainImagePath = location.ImagePaths.FirstOrDefault(),
+            location.WorkingHoursJson
+        });
+    }
+
+    [HttpGet]
     public async Task<IActionResult> Create()
     {
         if (!AccountController.IsAuthenticated(HttpContext))

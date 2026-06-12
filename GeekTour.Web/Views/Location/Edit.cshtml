@@ -5,7 +5,7 @@
     var fandoms = ViewBag.Fandoms as List<Fandom> ?? new List<Fandom>();
     var categories = ViewBag.Categories as List<Category> ?? new List<Category>();
     var selectedFandomIds = Model.FandomIds ?? new List<int>();
-    var returnUrl = Context.Request.Query["returnUrl"].FirstOrDefault() ?? Url.Action("Index", "Location");
+    var returnUrl = Context.Request.Query["returnUrl"].FirstOrDefault() ?? Url.Action("Index", "Location") ?? "";
     var isFromAdmin = returnUrl.Contains("Admin/Locations") || Context.Request.Headers["Referer"].ToString().Contains("Admin/Locations");
     Layout = isFromAdmin ? "~/Views/Admin/_AdminLayout.cshtml" : "_Layout";
 

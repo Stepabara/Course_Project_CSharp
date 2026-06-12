@@ -5,88 +5,310 @@
     ViewData["Title"] = "Главная";
     var allFandoms = ViewBag.Fandoms as List<Fandom> ?? new List<Fandom>();
     var allCategories = ViewBag.Categories as List<Category> ?? new List<Category>();
+    var isAuthenticated = Context.Session.GetInt32("UserId") != null;
 }
 
 <div class="home-layout">
-    <!-- Filters sidebar -->
-    <aside class="home-sidebar" id="homeSidebar">
+    <!-- ═══ Left Sidebar: Filters (only for Map tab) ═══ -->
+    <aside class="home-sidebar tab-map-sidebar" id="homeSidebar">
         <div class="home-sidebar-header">
             <h5><i class="fas fa-filter"></i> Фильтры</h5>
             <button type="button" class="btn btn-sm btn-outline-dark" id="sidebarResetBtn" onclick="resetAllFilters()" style="display:none;">
                 <i class="fas fa-times"></i> Сбросить
             </button>
         </div>
-        <div class="home-filter-group">
-            <label class="form-label">Поиск</label>
-            <div class="input-group">
-                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                <input type="text" id="searchInput" class="form-control" placeholder="Название, адрес..."
-                       value="@Context.Request.Query["SearchQuery"]" />
+
+        <div class="home-filters-scroll">
+            <!-- Search -->
+            <div class="home-filter-group">
+                <label class="form-label">Поиск</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Название, адрес..."
+                           value="@Context.Request.Query["SearchQuery"]" />
+                </div>
+            </div>
+
+            <!-- Type filter -->
+            <div class="home-filter-group">
+                <label class="form-label">Тип</label>
+                <select id="typeFilter" class="form-select">
+                    <option value="" selected>Все типы</option>
+                    @foreach (var t in Enum.GetValues<LocationType>())
+                    {
+                        <option value="@((int)t)">@GetLocationTypeName(t)</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Fandom checkboxes -->
+            <div class="home-filter-group">
+                <label class="form-label">Фандом</label>
+                <div class="fandom-checkboxes">
+                    @foreach (var fandom in allFandoms)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input fandom-checkbox" type="checkbox" value="@fandom.Id"
+                                   id="fandom_@fandom.Id" onchange="applyFilters()" />
+                            <label class="form-check-label" for="fandom_@fandom.Id">
+                                @GetFandomEmoji(fandom.Category) @fandom.Name
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Category filter -->
+            <div class="home-filter-group">
+                <label class="form-label">Категория</label>
+                <select id="categoryFilter" class="form-select">
+                    <option value="" selected>Все категории</option>
+                    @foreach (var cat in allCategories)
+                    {
+                        <option value="@cat.Id">@cat.Name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Rating filter -->
+            <div class="home-filter-group">
+                <label class="form-label">Мин. рейтинг</label>
+                <select id="ratingFilter" class="form-select">
+                    <option value="" selected>Любой</option>
+                    <option value="4">4+</option>
+                    <option value="4.5">4.5+</option>
+                </select>
+            </div>
+
+            <!-- Sort -->
+            <div class="home-filter-group">
+                <label class="form-label">Сортировка</label>
+                <select id="sortFilter" class="form-select">
+                    <option value="rating">По рейтингу</option>
+                    <option value="name">По названию</option>
+                    <option value="newest">Новые</option>
+                </select>
             </div>
         </div>
-        <div class="home-filter-group">
-            <label class="form-label">Тип</label>
-            <select id="typeFilter" class="form-select">
-                <option value="" selected>Все типы</option>
-                @foreach (var t in Enum.GetValues<LocationType>())
-                {
-                    <option value="@((int)t)">@GetLocationTypeName(t)</option>
-                }
-            </select>
+
+        <div class="home-sidebar-footer">
+            <button type="button" class="btn btn-dark w-100" onclick="applyFilters()">
+                <i class="fas fa-search"></i> Применить
+            </button>
         </div>
-        <div class="home-filter-group">
-            <label class="form-label">Фандом</label>
-            <select id="fandomFilter" class="form-select">
-                <option value="" selected>Все фандомы</option>
-                @foreach (var fandom in allFandoms)
-                {
-                    <option value="@fandom.Id">@fandom.Name</option>
-                }
-            </select>
-        </div>
-        <div class="home-filter-group">
-            <label class="form-label">Категория</label>
-            <select id="categoryFilter" class="form-select">
-                <option value="" selected>Все категории</option>
-                @foreach (var cat in allCategories)
-                {
-                    <option value="@cat.Id">@cat.Name</option>
-                }
-            </select>
-        </div>
-        <div class="home-filter-group">
-            <label class="form-label">Мин. рейтинг</label>
-            <select id="ratingFilter" class="form-select">
-                <option value="" selected>Любой</option>
-                <option value="4">4+</option>
-                <option value="4.5">4.5+</option>
-            </select>
-        </div>
-        <div class="home-filter-group">
-            <label class="form-label">Сортировка</label>
-            <select id="sortFilter" class="form-select">
-                <option value="rating">По рейтингу</option>
-                <option value="name">По названию</option>
-                <option value="newest">Новые</option>
-            </select>
-        </div>
-        <button type="button" class="btn btn-dark w-100 mt-3" onclick="applyFilters()">
-            <i class="fas fa-search"></i> Применить
-        </button>
     </aside>
 
-    <!-- Map area -->
-    <div class="home-map">
-        <div id="map"></div>
-        <div class="home-map-counter">
-            <span class="badge bg-dark" id="locCount">@Model.Count</span> заведений
+    <!-- ═══ Main Content Area ═══ -->
+    <div class="home-content">
+        <!-- Tab navigation -->
+        <div class="home-tabs">
+            <button type="button" class="home-tab active" data-tab="map" onclick="switchTab('map')">
+                <i class="fas fa-map-marked-alt"></i> Карта
+            </button>
+            <button type="button" class="home-tab" data-tab="planner" onclick="switchTab('planner')">
+                <i class="fas fa-calendar-alt"></i> Планировщик
+            </button>
+            <button type="button" class="home-tab" data-tab="reviews" onclick="switchTab('reviews')">
+                <i class="fas fa-star"></i> Отзывы
+            </button>
         </div>
-        <button type="button" class="btn btn-dark btn-sm" id="resetFiltersBtn" style="position:absolute;top:12px;right:12px;z-index:1000;display:none;" onclick="resetAllFilters()">
-            <i class="fas fa-times"></i> Сбросить фильтры
-        </button>
+
+        <!-- Tab: Map -->
+        <div class="home-tab-content active" id="tab-map">
+            <div class="home-map">
+                <div id="map"></div>
+                <div class="home-map-counter">
+                    <span class="badge bg-dark" id="locCount">@Model.Count</span> заведений
+                </div>
+                <button type="button" class="btn btn-dark btn-sm" id="resetFiltersBtn"
+                        style="position:absolute;top:12px;right:12px;z-index:1000;display:none;"
+                        onclick="resetAllFilters()">
+                    <i class="fas fa-times"></i> Сбросить фильтры
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab: Planner -->
+        <div class="home-tab-content" id="tab-planner">
+            <div class="planner-container">
+                <div class="row g-3">
+                    <!-- Calendar column -->
+                    <div class="col-lg-5">
+                        <div class="card planner-card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-calendar-alt"></i> Календарь</h5>
+                            </div>
+                            <div class="card-body p-3">
+                                <!-- Custom calendar -->
+                                <div id="plannerCalendar">
+                                    <div class="calendar-header">
+                                        <button type="button" class="btn btn-sm btn-outline-dark" onclick="calendarPrev()">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        <span id="calendarMonthYear" class="calendar-month-year"></span>
+                                        <button type="button" class="btn btn-sm btn-outline-dark" onclick="calendarNext()">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                    <div class="calendar-grid">
+                                        <div class="calendar-day-name">Пн</div>
+                                        <div class="calendar-day-name">Вт</div>
+                                        <div class="calendar-day-name">Ср</div>
+                                        <div class="calendar-day-name">Чт</div>
+                                        <div class="calendar-day-name">Пт</div>
+                                        <div class="calendar-day-name">Сб</div>
+                                        <div class="calendar-day-name">Вс</div>
+                                    </div>
+                                    <div class="calendar-grid" id="calendarDays"></div>
+                                </div>
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i> Выберите дату, чтобы увидеть запланированные точки или добавить новую.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Selected date info -->
+                        <div class="card planner-card mt-3">
+                            <div class="card-body">
+                                <h6><i class="fas fa-clock"></i> Выбранная дата: <span id="selectedDateDisplay" class="text-muted">не выбрана</span></h6>
+                                <div id="dayPointsList" class="mt-2"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Points list column -->
+                    <div class="col-lg-7">
+                        <div class="card planner-card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-list"></i> Запланированные точки</h5>
+                                <span class="badge bg-dark" id="plannerCount">0</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="plannerList" class="planner-list">
+                                    <div class="text-center py-5 text-muted" id="plannerEmpty">
+                                        <i class="fas fa-calendar-plus fa-2x mb-2"></i>
+                                        <p class="mb-0">Нажмите <i class="fas fa-calendar"></i> на карте, чтобы добавить точку в календарь</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Build route button -->
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="button" class="btn btn-dark flex-fill" id="buildRouteBtn" onclick="buildRouteFromPlanner()" disabled>
+                                <i class="fas fa-route"></i> Построить маршрут из выбранных точек
+                            </button>
+                            <button type="button" class="btn btn-outline-dark" onclick="clearPlanner()" title="Очистить всё">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Reviews -->
+        <div class="home-tab-content" id="tab-reviews">
+            <div class="reviews-tab-container">
+                <div class="row g-3">
+                    <!-- Left: Review form -->
+                    <div class="col-lg-4">
+                        <div class="card reviews-card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-pen"></i> Написать отзыв</h5>
+                            </div>
+                            <div class="card-body">
+                                @if (isAuthenticated)
+                                {
+                                    <form id="reviewFormTab" onsubmit="submitReviewTab(event)">
+                                        <div class="mb-3">
+                                            <label class="form-label">Заведение</label>
+                                            <select class="form-select" id="reviewLocationSelect" required>
+                                                <option value="">Выберите заведение...</option>
+                                                @foreach (var loc in Model)
+                                                {
+                                                    <option value="@loc.Id">@loc.Name</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Оценка</label>
+                                            <div class="star-rating d-flex gap-1" id="tabStarRating">
+                                                @for (int i = 1; i <= 5; i++)
+                                                {
+                                                    <button type="button" class="btn star-btn" data-value="@i" onclick="setTabRating(@i)" onmouseover="hoverTabRating(@i)" onmouseout="resetTabHover()">
+                                                        <i class="far fa-star" id="tab-star-@i"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                            <input type="hidden" id="tabRatingInput" value="0" />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Текст отзыва</label>
+                                            <textarea class="form-control" id="tabReviewText" rows="4" placeholder="Поделитесь впечатлениями..." required></textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Фото</label>
+                                            <input type="file" class="form-control" id="tabReviewPhotos" multiple accept="image/*" onchange="previewTabPhotos(this)" />
+                                            <div id="tabPhotoPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
+                                        </div>
+                                        <button type="submit" class="btn btn-dark w-100" id="tabSubmitReviewBtn" disabled>
+                                            <i class="fas fa-paper-plane"></i> Отправить
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-lock fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted mb-3">Войдите, чтобы оставлять отзывы</p>
+                                        <a href="/Account/Login" class="btn btn-dark btn-sm me-1">Войти</a>
+                                        <a href="/Account/Register" class="btn btn-outline-dark btn-sm">Регистрация</a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Right: Reviews feed -->
+                    <div class="col-lg-8">
+                        <div class="card reviews-card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <h5 class="mb-0"><i class="fas fa-comments"></i> Лента отзывов</h5>
+                                    <div class="reviews-search">
+                                        <input type="text" class="form-control form-control-sm" id="reviewSearchInput" placeholder="Поиск по заведению..." oninput="filterReviews()" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="reviewsFeed" class="reviews-feed">
+                                    <div class="text-center py-5 text-muted">
+                                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                                        <p class="mt-2 mb-0">Загрузка отзывов...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
+<!-- ═══ Location Detail Modal ═══ -->
+<div class="modal-overlay" id="locationModal" onclick="if(event.target===this)closeModal()">
+    <div class="modal-sheet">
+        <button type="button" class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+        <div id="modalContent">
+            <!-- Content loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<!-- Loading overlay -->
 <div id="loadingOverlay" style="display:none;position:fixed;top:72px;left:0;right:0;bottom:0;background:rgba(255,255,255,0.7);z-index:999;align-items:center;justify-content:center;">
     <div class="spinner-border text-dark" role="status">
         <span class="visually-hidden">Загрузка...</span>
@@ -95,29 +317,14 @@
 
 @section Styles {
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        .home-layout { display:flex; height:calc(100vh - 72px); overflow:hidden; }
-        .home-sidebar { width:280px; min-width:280px; background:#fff; border-right:1px solid #E0E0E0; padding:24px; overflow-y:auto; }
-        .home-sidebar-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
-        .home-sidebar-header h5 { font-family:'Montserrat',sans-serif; font-weight:700; margin:0; }
-        .home-filter-group { margin-bottom:16px; }
-        .home-filter-group .form-label { font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:#666; margin-bottom:6px; }
-        .home-map { flex:1; position:relative; }
-        #map { width:100%; height:100%; z-index:1; }
-        .home-map-counter { position:absolute; bottom:16px; left:16px; z-index:1000; }
-        .home-map-counter .badge { font-size:0.9rem; padding:8px 14px; }
-        @@media(max-width:767.98px) {
-            .home-layout { flex-direction:column; height:auto; }
-            .home-sidebar { width:100%; min-width:auto; border-right:none; border-bottom:1px solid #E0E0E0; padding:16px; }
-            .home-map { height:70vh; }
-        }
-    </style>
 }
 
 @section Scripts {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Initialize map — Минск
+        var isAuthenticated = @isAuthenticated.ToString().ToLower();
+
+        // ═══ Map initialization — Минск ═══
         var map = L.map('map').setView([53.9045, 27.5615], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap'
@@ -125,23 +332,136 @@
 
         var markers = [];
         var markerMap = {};
-        var totalLocationsCount = @Model.Count;
+        var allLocations = [];
 
-        // Load initial locations from server-rendered data
-        var initialLocations = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(l => new { l.Id, l.Name, l.Latitude, l.Longitude, l.AverageRating, l.Type })));
-
+        // ═══ Type helpers ═══
         function typeEmoji(type) { return type === 0 ? '🍜' : type === 1 ? '🛒' : '🎨'; }
+        function typeName(type) { return type === 0 ? 'Кафе' : type === 1 ? 'Магазин' : 'Арт-объект'; }
 
+        // ═══ Fandom category colors for markers ═══
+        function getMarkerColor(type) {
+            if (type === 0) return '#6C5CE7';
+            if (type === 1) return '#00B894';
+            return '#E17055';
+        }
+
+        function createColoredIcon(type) {
+            var color = getMarkerColor(type);
+            return L.divIcon({
+                className: 'custom-marker',
+                html: '<div style="background:' + color + ';width:28px;height:28px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:12px;">' + typeEmoji(type) + '</div>',
+                iconSize: [28, 28],
+                iconAnchor: [14, 14],
+                popupAnchor: [0, -16]
+            });
+        }
+
+        // ═══ Working hours parser ═══
+        function parseWorkingHours(json) {
+            try {
+                var h = JSON.parse(json);
+                var days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+                var names = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+                var result = '';
+                for (var i = 0; i < 7; i++) {
+                    var v = h[days[i]];
+                    if (v) {
+                        if (v === 'closed') result += names[i] + ': закрыто<br>';
+                        else result += names[i] + ': ' + v + '<br>';
+                    }
+                }
+                return result || 'Не указано';
+            } catch(e) { return 'Не указано'; }
+        }
+
+        function getTodayHours(json) {
+            try {
+                var h = JSON.parse(json);
+                var days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+                var today = days[new Date().getDay()];
+                var v = h[today];
+                if (!v) return 'Не указано';
+                if (v === 'closed') return 'Закрыто';
+                return v;
+            } catch(e) { return 'Не указано'; }
+        }
+
+        // ═══ Auth gate helper ═══
+        function requireAuth(action) {
+            if (isAuthenticated) return true;
+            // Show auth prompt modal
+            showAuthPrompt(action);
+            return false;
+        }
+
+        function showAuthPrompt(action) {
+            var modal = document.getElementById('locationModal');
+            var content = document.getElementById('modalContent');
+            content.innerHTML =
+                '<div class="text-center py-5">' +
+                    '<i class="fas fa-lock fa-3x text-muted mb-3"></i>' +
+                    '<h4>Требуется авторизация</h4>' +
+                    '<p class="text-muted mb-4">Чтобы использовать функцию «' + action + '», войдите в свой аккаунт или зарегистрируйтесь.</p>' +
+                    '<a href="/Account/Login" class="btn btn-dark btn-lg me-2"><i class="fas fa-sign-in-alt"></i> Войти</a>' +
+                    '<a href="/Account/Register" class="btn btn-outline-dark btn-lg"><i class="fas fa-user-plus"></i> Регистрация</a>' +
+                '</div>';
+            modal.classList.add('open');
+        }
+
+        // ═══ Build rich popup ═══
         function buildPopup(loc) {
             var id = loc.id || loc.Id;
             var name = loc.name || loc.Name;
             var type = loc.type !== undefined ? loc.type : loc.Type;
             var rating = loc.averageRating !== undefined ? loc.averageRating : loc.AverageRating;
-            return '<b>' + typeEmoji(type) + ' ' + name + '</b><br>' +
-                'Рейтинг: ' + Number(rating).toFixed(1) + ' ⭐<br>' +
-                '<a href="/Location/Details/' + id + '" class="btn btn-sm btn-dark mt-1" style="text-decoration:none;">Подробнее</a>';
+            var desc = (loc.description || loc.Description || '').substring(0, 120);
+            var addr = loc.address || loc.Address || '';
+            var fandoms = loc.fandomNames || loc.FandomNames || [];
+            var img = loc.mainImagePath || loc.MainImagePath;
+            var wh = loc.workingHoursJson || loc.WorkingHoursJson || '{}';
+            var todayWh = getTodayHours(wh);
+
+            var starsHtml = '';
+            for (var i = 1; i <= 5; i++) {
+                starsHtml += '<i class="fa-star ' + (i <= Math.round(rating) ? 'fas' : 'far') + '" style="color:#FFC107;font-size:0.8rem;"></i>';
+            }
+
+            var fandomsHtml = fandoms.length > 0
+                ? '<div style="margin:4px 0;">' + fandoms.map(function(f) {
+                    return '<span class="badge bg-secondary me-1" style="font-size:0.7rem;">' + f + '</span>';
+                }).join('') + '</div>'
+                : '';
+
+            var imgHtml = img
+                ? '<div style="margin-bottom:8px;"><img src="' + img + '" style="width:100%;height:80px;object-fit:cover;border-radius:6px;" alt="" onerror="this.style.display=\'none\'" /></div>'
+                : '<div style="margin-bottom:8px;background:#f0f0f0;height:60px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#999;font-size:0.75rem;">' + typeEmoji(type) + ' ' + typeName(type) + '</div>';
+
+            // Guest: show buttons but they trigger auth prompt
+            var routeBtn = isAuthenticated
+                ? '<button type="button" class="btn btn-sm btn-dark" onclick="addToRoute(' + id + ')"><i class="fas fa-plus"></i> В маршрут</button>'
+                : '<button type="button" class="btn btn-sm btn-dark" onclick="requireAuth(\'Добавить в маршрут\')"><i class="fas fa-plus"></i> В маршрут</button>';
+            var calBtn = isAuthenticated
+                ? '<button type="button" class="btn btn-sm btn-outline-dark" onclick="addToCalendar(' + id + ')"><i class="fas fa-calendar"></i></button>'
+                : '<button type="button" class="btn btn-sm btn-outline-dark" onclick="requireAuth(\'Добавить в календарь\')"><i class="fas fa-calendar"></i></button>';
+            var reviewBtn = isAuthenticated
+                ? '<button type="button" class="btn btn-sm btn-outline-dark" onclick="writeReview(' + id + ')"><i class="fas fa-pen"></i></button>'
+                : '<button type="button" class="btn btn-sm btn-outline-dark" onclick="requireAuth(\'Написать отзыв\')"><i class="fas fa-pen"></i></button>';
+
+            return '<div class="map-popup" style="min-width:220px;max-width:260px;">' +
+                imgHtml +
+                '<b style="font-size:0.95rem;">' + typeEmoji(type) + ' ' + name + '</b><br>' +
+                '<div style="margin:2px 0;">' + starsHtml + ' <span style="font-size:0.8rem;color:#666;">' + Number(rating).toFixed(1) + '</span></div>' +
+                fandomsHtml +
+                '<div style="font-size:0.78rem;color:#666;margin:4px 0;">📍 ' + addr + '</div>' +
+                '<div style="font-size:0.78rem;color:#666;margin:2px 0;">🕐 Сегодня: ' + todayWh + '</div>' +
+                (desc ? '<div style="font-size:0.78rem;color:#888;margin:4px 0;">' + desc + (desc.length >= 120 ? '...' : '') + '</div>' : '') +
+                '<div style="margin-top:10px;display:flex;gap:4px;flex-wrap:wrap;">' +
+                    routeBtn + calBtn + reviewBtn +
+                    '<button type="button" class="btn btn-sm btn-outline-dark" onclick="openLocationModal(' + id + ')" title="Подробнее"><i class="fas fa-info"></i></button>' +
+                '</div></div>';
         }
 
+        // ═══ Markers management ═══
         function clearMarkers() {
             markers.forEach(function(m) { map.removeLayer(m); });
             markers = [];
@@ -156,7 +476,10 @@
                 var lat = loc.latitude || loc.Latitude;
                 var lng = loc.longitude || loc.Longitude;
                 if (!lat || !lng) return;
-                var marker = L.marker([lat, lng]).addTo(map).bindPopup(buildPopup(loc));
+                var type = loc.type !== undefined ? loc.type : loc.Type;
+                var marker = L.marker([lat, lng], { icon: createColoredIcon(type) })
+                    .addTo(map)
+                    .bindPopup(buildPopup(loc));
                 markers.push(marker);
                 markerMap[loc.id || loc.Id] = marker;
                 bounds.extend([lat, lng]);
@@ -167,18 +490,475 @@
             return count;
         }
 
-        // Initial markers
-        addMarkers(initialLocations);
-
         function focusLocation(id, lat, lng) {
             var marker = markerMap[id];
             if (marker) { map.setView([lat, lng], 15); marker.openPopup(); }
         }
 
+        // ═══ Load initial locations ═══
+        allLocations = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(l => new { l.Id, l.Name, l.Description, l.Address, l.Latitude, l.Longitude, l.AverageRating, l.Type, l.FandomIds, l.FandomNames, l.WorkingHoursJson, l.MainImagePath })));
+        addMarkers(allLocations);
+
+        // ═══ Location Detail Modal (like Yandex Maps) ═══
+        function openLocationModal(id) {
+            var loc = findLoc(id);
+            if (!loc) {
+                // Fetch from server if not in current filtered set
+                fetch('/Location/GetLocationData?id=' + id)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data) renderModal(data);
+                    });
+                return;
+            }
+            renderModal(loc);
+        }
+
+        function renderModal(loc) {
+            var id = loc.id || loc.Id;
+            var name = loc.name || loc.Name;
+            var type = loc.type !== undefined ? loc.type : loc.Type;
+            var rating = loc.averageRating !== undefined ? loc.averageRating : loc.AverageRating;
+            var desc = loc.description || loc.Description || '';
+            var addr = loc.address || loc.Address || '';
+            var fandoms = loc.fandomNames || loc.FandomNames || [];
+            var img = loc.mainImagePath || loc.MainImagePath;
+            var wh = loc.workingHoursJson || loc.WorkingHoursJson || '{}';
+            var reviewCount = loc.reviewCount !== undefined ? loc.reviewCount : loc.ReviewCount || 0;
+            var catName = loc.categoryName || loc.CategoryName || '';
+
+            var starsHtml = '';
+            for (var i = 1; i <= 5; i++) {
+                starsHtml += '<i class="fa-star ' + (i <= Math.round(rating) ? 'fas' : 'far') + '" style="color:#FFC107;"></i>';
+            }
+
+            var fandomsHtml = fandoms.length > 0
+                ? '<div class="mb-3">' + fandoms.map(function(f) {
+                    return '<span class="badge bg-secondary me-1">' + f + '</span>';
+                }).join('') + '</div>'
+                : '';
+
+            var whHtml = '';
+            try {
+                var h = JSON.parse(wh);
+                var days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+                var names = ['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'];
+                whHtml = '<table class="table table-sm working-hours mb-0">';
+                for (var i = 0; i < 7; i++) {
+                    var v = h[days[i]] || '—';
+                    if (v === 'closed') v = 'Закрыто';
+                    whHtml += '<tr><th>' + names[i] + '</th><td>' + v + '</td></tr>';
+                }
+                whHtml += '</table>';
+            } catch(e) { whHtml = '<p class="text-muted">Не указано</p>'; }
+
+            var imgHtml = img
+                ? '<div class="modal-hero-img" style="background-image:url(\'' + img + '\');"></div>'
+                : '<div class="modal-hero-img modal-hero-placeholder"><span>' + typeEmoji(type) + '</span><div>' + typeName(type) + '</div></div>';
+
+            var routeBtnHtml = isAuthenticated
+                ? '<button class="btn btn-dark" onclick="addToRoute(' + id + '); closeModal();"><i class="fas fa-plus"></i> В маршрут</button>'
+                : '<button class="btn btn-dark" onclick="closeModal(); requireAuth(\'Добавить в маршрут\')"><i class="fas fa-plus"></i> В маршрут</button>';
+            var calBtnHtml = isAuthenticated
+                ? '<button class="btn btn-outline-dark" onclick="addToCalendar(' + id + '); closeModal();"><i class="fas fa-calendar"></i> В календарь</button>'
+                : '<button class="btn btn-outline-dark" onclick="closeModal(); requireAuth(\'Добавить в календарь\')"><i class="fas fa-calendar"></i> В календарь</button>';
+            var reviewBtnHtml = isAuthenticated
+                ? '<button class="btn btn-outline-dark" onclick="closeModal(); writeReview(' + id + ')"><i class="fas fa-pen"></i> Отзыв</button>'
+                : '<button class="btn btn-outline-dark" onclick="closeModal(); requireAuth(\'Написать отзыв\')"><i class="fas fa-pen"></i> Отзыв</button>';
+
+            var content = document.getElementById('modalContent');
+            content.innerHTML =
+                '<div class="modal-detail">' +
+                    imgHtml +
+                    '<div class="modal-body">' +
+                        '<div class="modal-type-badge mb-2">' + typeEmoji(type) + ' ' + typeName(type) + (catName ? ' · ' + catName : '') + '</div>' +
+                        '<h3 class="modal-title">' + name + '</h3>' +
+                        '<div class="modal-rating mb-2">' + starsHtml + ' <strong>' + Number(rating).toFixed(1) + '</strong> <span class="text-muted">(' + reviewCount + ' отзывов)</span></div>' +
+                        fandomsHtml +
+                        '<p class="modal-desc">' + (desc || 'Описание отсутствует') + '</p>' +
+                        '<div class="modal-info-row"><i class="fas fa-map-marker-alt"></i><span>' + addr + '</span></div>' +
+                        '<h6 class="mt-3 mb-2"><i class="fas fa-clock"></i> Часы работы</h6>' +
+                        whHtml +
+                        '<div class="modal-actions">' +
+                            routeBtnHtml + calBtnHtml + reviewBtnHtml +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+
+            document.getElementById('locationModal').classList.add('open');
+        }
+
+        function closeModal() {
+            document.getElementById('locationModal').classList.remove('open');
+        }
+
+        // Close modal on Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // ═══ Popup action buttons ═══
+        function findLoc(id) {
+            var found = null;
+            allLocations.forEach(function(l) { if ((l.id || l.Id) === id) found = l; });
+            return found;
+        }
+
+        function addToRoute(id) {
+            if (!requireAuth('Добавить в маршрут')) return;
+            var loc = findLoc(id);
+            if (!loc) return;
+            var name = loc.name || loc.Name;
+            var route = JSON.parse(localStorage.getItem('gt_route') || '[]');
+            if (route.find(function(l) { return (l.id || l.Id) === id; })) {
+                alert('"' + name + '" уже в маршруте');
+                return;
+            }
+            route.push({ id: id, name: name, lat: loc.latitude || loc.Latitude, lng: loc.longitude || loc.Longitude });
+            localStorage.setItem('gt_route', JSON.stringify(route));
+            alert('"' + name + '" добавлено в маршрут! 📍');
+        }
+
+        function addToCalendar(id) {
+            if (!requireAuth('Добавить в календарь')) return;
+            var loc = findLoc(id);
+            if (!loc) return;
+            var name = loc.name || loc.Name;
+            var date = prompt('Введите дату (ГГГГ-ММ-ДД):', new Date().toISOString().split('T')[0]);
+            if (!date) return;
+            var time = prompt('Введите время:', '12:00');
+            var plan = JSON.parse(localStorage.getItem('gt_plan') || '[]');
+            plan.push({ date: date, time: time || '12:00', locId: id, locName: name });
+            localStorage.setItem('gt_plan', JSON.stringify(plan));
+            alert('Добавлено: ' + name + ' на ' + date + ' ' + (time || '12:00') + ' 📅');
+        }
+
+        function writeReview(id) {
+            if (!requireAuth('Написать отзыв')) return;
+            var loc = findLoc(id);
+            if (!loc) return;
+            var name = loc.name || loc.Name;
+            switchTab('reviews');
+            showReviewForm(id, name);
+        }
+
+        function showReviewForm(locId, locName) {
+            var container = document.getElementById('reviewFormContainer');
+            container.innerHTML =
+                '<div class="card">' +
+                    '<div class="card-header">' +
+                        '<h5 class="mb-0"><i class="fas fa-pen"></i> Отзыв о «' + locName + '»</h5>' +
+                    '</div>' +
+                    '<div class="card-body">' +
+                        '<form id="reviewForm" onsubmit="submitReview(event, ' + locId + ')">' +
+                            '<div class="mb-3">' +
+                                '<label class="form-label">Оценка</label>' +
+                                '<div class="star-rating d-flex gap-1" id="starRating">' +
+                                    [1,2,3,4,5].map(function(i) {
+                                        return '<button type="button" class="btn star-btn" data-value="' + i + '" onclick="setRating(' + i + ')" onmouseover="hoverRating(' + i + ')" onmouseout="resetHover()">' +
+                                            '<i class="far fa-star" id="star-' + i + '"></i></button>';
+                                    }).join('') +
+                                '</div>' +
+                                '<input type="hidden" id="ratingInput" value="0" />' +
+                            '</div>' +
+                            '<div class="mb-3">' +
+                                '<label class="form-label">Текст отзыва</label>' +
+                                '<textarea class="form-control" id="reviewText" rows="4" placeholder="Поделитесь впечатлениями о «' + locName + '»..."></textarea>' +
+                            '</div>' +
+                            '<div class="d-flex gap-2">' +
+                                '<button type="submit" class="btn btn-dark" id="submitReviewBtn" disabled><i class="fas fa-paper-plane"></i> Отправить</button>' +
+                                '<button type="button" class="btn btn-outline-dark" onclick="cancelReview()">Отмена</button>' +
+                            '</div>' +
+                        '</form>' +
+                    '</div>' +
+                '</div>';
+        }
+
+        function cancelReview() {
+            var container = document.getElementById('reviewFormContainer');
+            container.innerHTML =
+                '<div class="card"><div class="card-body text-center py-5">' +
+                    '<i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>' +
+                    '<h5>Выберите заведение</h5>' +
+                    '<p class="text-muted">Кликните на маркер на карте, затем нажмите<br>«Написать отзыв» чтобы перейти сюда.</p>' +
+                '</div></div>';
+        }
+
+        function submitReview(e, locId) {
+            e.preventDefault();
+            var rating = parseInt(document.getElementById('ratingInput').value);
+            var text = document.getElementById('reviewText').value.trim();
+            if (rating === 0) { alert('Выберите оценку'); return; }
+            if (!text) { alert('Напишите текст отзыва'); return; }
+
+            fetch('/Review/Create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'LocationId=' + locId + '&Rating=' + rating + '&Text=' + encodeURIComponent(text)
+            }).then(function(r) {
+                if (r.redirected) { window.location.href = r.url; return; }
+                return r.json();
+            }).then(function(data) {
+                if (data && data.success) {
+                    alert('Отзыв отправлен на модерацию! ✅');
+                    cancelReview();
+                }
+            }).catch(function() {
+                alert('Не удалось отправить отзыв. Возможно, нужно войти в аккаунт.');
+            });
+        }
+
+        // Star rating
+        var currentRating = 0;
+        function setRating(value) {
+            currentRating = value;
+            document.getElementById('ratingInput').value = value;
+            updateStars(value);
+            document.getElementById('submitReviewBtn').disabled = false;
+        }
+        function hoverRating(value) { updateStars(value); }
+        function resetHover() { updateStars(currentRating); }
+        function updateStars(value) {
+            for (var i = 1; i <= 5; i++) {
+                var star = document.getElementById('star-' + i);
+                if (i <= value) { star.classList.remove('far'); star.classList.add('fas'); star.style.color = '#FFC107'; }
+                else { star.classList.remove('fas'); star.classList.add('far'); star.style.color = '#CCC'; }
+            }
+        }
+
+        // ═══ Tab switching ═══
+        function switchTab(tabName) {
+            document.querySelectorAll('.home-tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.home-tab-content').forEach(function(c) { c.classList.remove('active'); });
+            var tabBtn = document.querySelector('[data-tab="' + tabName + '"]');
+            if (tabBtn) tabBtn.classList.add('active');
+            var tabContent = document.getElementById('tab-' + tabName);
+            if (tabContent) tabContent.classList.add('active');
+
+            // Show sidebar only on Map tab
+            var sidebar = document.getElementById('homeSidebar');
+            if (sidebar) {
+                if (tabName === 'map') {
+                    sidebar.classList.remove('hidden-sidebar');
+                } else {
+                    sidebar.classList.add('hidden-sidebar');
+                }
+            }
+
+            if (tabName === 'map') setTimeout(function() { map.invalidateSize(); }, 100);
+            if (tabName === 'planner') { renderCalendar(); renderPlannerList(); }
+            if (tabName === 'reviews') { loadReviews(); }
+        }
+
+        // ═══ REVIEWS TAB ═══
+        var tabRating = 0;
+        var tabPhotoBase64 = [];
+
+        function setTabRating(value) {
+            tabRating = value;
+            document.getElementById('tabRatingInput').value = value;
+            updateTabStars(value);
+            document.getElementById('tabSubmitReviewBtn').disabled = false;
+        }
+        function hoverTabRating(value) { updateTabStars(value); }
+        function resetTabHover() { updateTabStars(tabRating); }
+        function updateTabStars(value) {
+            for (var i = 1; i <= 5; i++) {
+                var star = document.getElementById('tab-star-' + i);
+                if (i <= value) { star.classList.remove('far'); star.classList.add('fas'); star.style.color = '#FFC107'; }
+                else { star.classList.remove('fas'); star.classList.add('far'); star.style.color = '#CCC'; }
+            }
+        }
+
+        function previewTabPhotos(input) {
+            tabPhotoBase64 = [];
+            var preview = document.getElementById('tabPhotoPreview');
+            preview.innerHTML = '';
+            var files = input.files;
+            for (var i = 0; i < Math.min(files.length, 5); i++) {
+                (function(file) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        tabPhotoBase64.push(e.target.result);
+                        var div = document.createElement('div');
+                        div.className = 'position-relative';
+                        div.innerHTML = '<img src="' + e.target.result + '" class="rounded" style="width:60px;height:60px;object-fit:cover;" />';
+                        preview.appendChild(div);
+                    };
+                    reader.readAsDataURL(file);
+                })(files[i]);
+            }
+        }
+
+        function submitReviewTab(e) {
+            e.preventDefault();
+            var locId = parseInt(document.getElementById('reviewLocationSelect').value);
+            var rating = parseInt(document.getElementById('tabRatingInput').value);
+            var text = document.getElementById('tabReviewText').value.trim();
+            if (!locId) { alert('Выберите заведение'); return; }
+            if (rating === 0) { alert('Выберите оценку'); return; }
+            if (!text) { alert('Напишите текст отзыва'); return; }
+
+            var formData = new FormData();
+            formData.append('LocationId', locId);
+            formData.append('Rating', rating);
+            formData.append('Text', text);
+            // Append photos as base64 (imitation)
+            tabPhotoBase64.forEach(function(b64, i) {
+                formData.append('PhotoBase64_' + i, b64);
+            });
+
+            fetch('/Review/Create', {
+                method: 'POST',
+                body: formData
+            }).then(function(r) {
+                if (r.redirected) { window.location.href = r.url; return; }
+                return r.json();
+            }).then(function(data) {
+                if (data && data.success) {
+                    alert('Отзыв отправлен на модерацию! ✅');
+                    document.getElementById('reviewFormTab').reset();
+                    tabPhotoBase64 = [];
+                    document.getElementById('tabPhotoPreview').innerHTML = '';
+                    setTabRating(0);
+                    loadReviews();
+                }
+            }).catch(function() {
+                alert('Отзыв отправлен! Он появится после модерации.');
+                loadReviews();
+            });
+        }
+
+        var allReviews = [];
+
+        function loadReviews() {
+            fetch('/Review/GetReviews')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    allReviews = data || [];
+                    renderReviewsFeed(allReviews, 'reviewsFeed');
+                })
+                .catch(function() {
+                    document.getElementById('reviewsFeed').innerHTML =
+                        '<div class="text-center py-5 text-muted"><i class="fas fa-exclamation-circle fa-2x mb-2"></i><p>Не удалось загрузить отзывы</p></div>';
+                });
+        }
+
+        function filterReviews() {
+            var query = document.getElementById('reviewSearchInput').value.toLowerCase().trim();
+            if (!query) { renderReviewsFeed(allReviews, 'reviewsFeed'); return; }
+            var filtered = allReviews.filter(function(r) {
+                return (r.locationName || '').toLowerCase().includes(query);
+            });
+            renderReviewsFeed(filtered, 'reviewsFeed');
+        }
+
+        function renderReviewsFeed(reviews, containerId) {
+            var container = document.getElementById(containerId);
+            if (!reviews || reviews.length === 0) {
+                container.innerHTML = '<div class="text-center py-5 text-muted"><i class="fas fa-inbox fa-2x mb-2"></i><p class="mb-0">Отзывов пока нет</p></div>';
+                return;
+            }
+            var html = '';
+            reviews.forEach(function(r) {
+                var stars = '';
+                for (var i = 1; i <= 5; i++) {
+                    stars += '<i class="fa-star ' + (i <= r.rating ? 'fas' : 'far') + '" style="color:#FFC107;font-size:0.8rem;"></i>';
+                }
+                var date = new Date(r.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+                var isMyReview = isAuthenticated && r.userId === @Context.Session.GetInt32("UserId").GetValueOrDefault(0);
+
+                // User avatar
+                var avatarHtml = r.userAvatar
+                    ? '<img src="' + r.userAvatar + '" class="review-avatar-img" alt="" />'
+                    : '<div class="review-avatar">' + (r.userName || '?').substring(0, 1).toUpperCase() + '</div>';
+
+                // Photos
+                var photosHtml = '';
+                if (r.photoPaths && r.photoPaths.length > 0) {
+                    photosHtml = '<div class="review-photos">';
+                    r.photoPaths.forEach(function(p) {
+                        if (p) photosHtml += '<img src="' + p + '" class="review-photo" alt="" onerror="this.style.display=\'none\'" />';
+                    });
+                    photosHtml += '</div>';
+                }
+
+                // Owner response
+                var responseHtml = '';
+                if (r.ownerResponse) {
+                    responseHtml = '<div class="review-response"><i class="fas fa-reply"></i> <strong>Ответ заведения:</strong> ' + r.ownerResponse + '</div>';
+                }
+
+                // Edit/delete buttons for own reviews
+                var actionsHtml = '';
+                if (isMyReview) {
+                    actionsHtml = '<div class="review-actions">' +
+                        '<button type="button" class="btn btn-sm btn-outline-dark" onclick="editReview(' + r.id + ', ' + r.rating + ', ' + JSON.stringify(r.text) + ')" title="Редактировать"><i class="fas fa-edit"></i></button>' +
+                        '<button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteReview(' + r.id + ')" title="Удалить"><i class="fas fa-trash"></i></button>' +
+                    '</div>';
+                }
+
+                html += '<div class="review-item" id="review-' + r.id + '">' +
+                    '<div class="review-header">' +
+                        avatarHtml +
+                        '<div class="review-meta">' +
+                            '<div class="review-user-name">' + (r.userName || 'Аноним') + '</div>' +
+                            '<div class="review-location"><i class="fas fa-map-marker-alt"></i> ' + (r.locationName || '') + '</div>' +
+                        '</div>' +
+                        '<div class="review-right">' +
+                            '<div class="review-stars">' + stars + '</div>' +
+                            '<div class="review-date">' + date + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="review-text">' + (r.text || '') + '</div>' +
+                    photosHtml +
+                    responseHtml +
+                    actionsHtml +
+                '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function editReview(id, currentRating, currentText) {
+            var newText = prompt('Редактировать отзыв:', currentText);
+            if (newText === null) return;
+            if (!newText.trim()) { alert('Текст не может быть пустым'); return; }
+            var newRatingStr = prompt('Оценка (1-5):', currentRating);
+            if (newRatingStr === null) return;
+            var newRating = parseInt(newRatingStr);
+            if (isNaN(newRating) || newRating < 1 || newRating > 5) { alert('Оценка от 1 до 5'); return; }
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]');
+            var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+            fetch('/Review/UpdateReview?id=' + id + '&rating=' + newRating + '&text=' + encodeURIComponent(newText), {
+                method: 'PUT',
+                headers: headers
+            }).then(function(r) {
+                if (r.ok) { alert('Отзыв обновлён! ✅'); loadReviews(); }
+                else alert('Ошибка при обновлении');
+            }).catch(function() { alert('Ошибка соединения'); });
+        }
+
+        function deleteReview(id) {
+            if (!confirm('Удалить этот отзыв?')) return;
+            fetch('/Review/DeleteReview?id=' + id, { method: 'DELETE' })
+                .then(function(r) {
+                    if (r.ok) { alert('Отзыв удалён'); loadReviews(); }
+                    else alert('Ошибка при удалении');
+                }).catch(function() { alert('Ошибка соединения'); });
+        }
+
+        // ═══ Filters ═══
+        function getSelectedFandoms() {
+            var ids = [];
+            document.querySelectorAll('.fandom-checkbox:checked').forEach(function(cb) { ids.push(parseInt(cb.value)); });
+            return ids;
+        }
+
         function hasActiveFilters() {
             return document.getElementById('searchInput').value !== ''
                 || document.getElementById('typeFilter').value !== ''
-                || document.getElementById('fandomFilter').value !== ''
+                || getSelectedFandoms().length > 0
                 || document.getElementById('categoryFilter').value !== ''
                 || document.getElementById('ratingFilter').value !== ''
                 || document.getElementById('sortFilter').value !== 'rating';
@@ -200,32 +980,38 @@
             var params = new URLSearchParams();
             var search = document.getElementById('searchInput').value.trim();
             var type = document.getElementById('typeFilter').value;
-            var fandom = document.getElementById('fandomFilter').value;
+            var fandomIds = getSelectedFandoms();
             var category = document.getElementById('categoryFilter').value;
             var rating = document.getElementById('ratingFilter').value;
             var sort = document.getElementById('sortFilter').value;
+
             if (search) params.set('searchQuery', search);
             if (type) params.set('type', type);
-            if (fandom) params.set('fandomId', fandom);
+            fandomIds.forEach(function(id) { params.append('fandomId', id); });
             if (category) params.set('categoryId', category);
             if (rating) params.set('minRating', rating);
             if (sort && sort !== 'rating') params.set('sortBy', sort);
+
             document.getElementById('loadingOverlay').style.display = 'flex';
             fetch('/Home/GetFilteredLocations?' + params.toString())
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
+                    allLocations = data;
                     var count = addMarkers(data);
                     document.getElementById('locCount').textContent = count;
                     updateResetButtons();
                     document.getElementById('loadingOverlay').style.display = 'none';
                 })
-                .catch(function(err) { console.error('Filter error:', err); document.getElementById('loadingOverlay').style.display = 'none'; });
+                .catch(function(err) {
+                    console.error('Filter error:', err);
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                });
         }
 
         function resetAllFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('typeFilter').value = '';
-            document.getElementById('fandomFilter').value = '';
+            document.querySelectorAll('.fandom-checkbox').forEach(function(cb) { cb.checked = false; });
             document.getElementById('categoryFilter').value = '';
             document.getElementById('ratingFilter').value = '';
             document.getElementById('sortFilter').value = 'rating';
@@ -237,20 +1023,318 @@
             fetch('/Home/GetFilteredLocations')
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
+                    allLocations = data;
                     var count = addMarkers(data);
                     document.getElementById('locCount').textContent = count;
                     document.getElementById('loadingOverlay').style.display = 'none';
                 })
-                .catch(function(err) { console.error('Reset error:', err); document.getElementById('loadingOverlay').style.display = 'none'; });
+                .catch(function(err) {
+                    console.error('Reset error:', err);
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                });
         }
 
+        // ═══ PLANNER: Calendar + Points management ═══
+        var plannerData = JSON.parse(localStorage.getItem('gt_plan') || '[]');
+        var calendarCurrentDate = new Date();
+        var calendarSelectedDate = null;
+
+        function savePlanner() {
+            localStorage.setItem('gt_plan', JSON.stringify(plannerData));
+            renderPlannerList();
+            renderCalendar();
+            updatePlannerCount();
+        }
+
+        function updatePlannerCount() {
+            var count = plannerData.length;
+            document.getElementById('plannerCount').textContent = count;
+            document.getElementById('buildRouteBtn').disabled = count < 2;
+        }
+
+        function addToPlanner(id, name, date, time) {
+            // Check duplicate
+            if (plannerData.find(function(p) { return p.locId === id && p.date === date; })) {
+                alert('"' + name + '" уже запланировано на ' + formatDateRu(date));
+                return false;
+            }
+            plannerData.push({ date: date, time: time || '12:00', locId: id, locName: name });
+            savePlanner();
+            return true;
+        }
+
+        function removeFromPlanner(index) {
+            plannerData.splice(index, 1);
+            savePlanner();
+        }
+
+        function clearPlanner() {
+            if (!confirm('Очистить весь план?')) return;
+            plannerData = [];
+            savePlanner();
+            document.getElementById('dayPointsList').innerHTML = '';
+            document.getElementById('selectedDateDisplay').textContent = 'не выбрана';
+            calendarSelectedDate = null;
+        }
+
+        function formatDateRu(dateStr) {
+            if (!dateStr) return '';
+            var parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            return parts[2] + '.' + parts[1] + '.' + parts[0];
+        }
+
+        function formatDateShort(dateStr) {
+            if (!dateStr) return '';
+            var parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            var months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+            return parts[2] + ' ' + months[parseInt(parts[1]) - 1];
+        }
+
+        // ═══ Calendar rendering ═══
+        function renderCalendar() {
+            var year = calendarCurrentDate.getFullYear();
+            var month = calendarCurrentDate.getMonth();
+
+            // Month/year header
+            var months = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+            document.getElementById('calendarMonthYear').textContent = months[month] + ' ' + year;
+
+            // Build grid
+            var grid = document.getElementById('calendarDays');
+            grid.innerHTML = '';
+
+            var firstDay = new Date(year, month, 1);
+            var lastDay = new Date(year, month + 1, 0);
+            var startDow = firstDay.getDay(); // 0=Sun
+            // Convert to Mon=0 format
+            var startOffset = startDow === 0 ? 6 : startDow - 1;
+
+            // Previous month filler
+            var prevMonthLastDay = new Date(year, month, 0).getDate();
+            for (var i = startOffset - 1; i >= 0; i--) {
+                var dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day other-month';
+                dayDiv.textContent = prevMonthLastDay - i;
+                grid.appendChild(dayDiv);
+            }
+
+            // Current month days
+            var today = new Date();
+            today.setHours(0, 0, 0, 0);
+            var todayStr = today.toISOString().split('T')[0];
+
+            for (var d = 1; d <= lastDay.getDate(); d++) {
+                var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+                var dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day';
+                dayDiv.textContent = d;
+
+                // Today highlight
+                if (dateStr === todayStr) {
+                    dayDiv.classList.add('today');
+                }
+
+                // Selected date
+                if (calendarSelectedDate === dateStr) {
+                    dayDiv.classList.add('selected');
+                }
+
+                // Has planned points?
+                var dayPoints = plannerData.filter(function(p) { return p.date === dateStr; });
+                if (dayPoints.length > 0) {
+                    dayDiv.classList.add('has-points');
+                    var dot = document.createElement('span');
+                    dot.className = 'calendar-dot';
+                    if (dayPoints.length > 1) dot.textContent = dayPoints.length;
+                    dayDiv.appendChild(dot);
+                }
+
+                (function(ds) {
+                    dayDiv.addEventListener('click', function() {
+                        calendarSelectedDate = ds;
+                        renderCalendar();
+                        showDayPoints(ds);
+                    });
+                })(dateStr);
+
+                grid.appendChild(dayDiv);
+            }
+
+            // Next month filler
+            var totalCells = startOffset + lastDay.getDate();
+            var remaining = (7 - totalCells % 7) % 7;
+            if (remaining > 0 || totalCells < 35) {
+                var fill = remaining > 0 ? remaining : 7;
+                for (var n = 1; n <= fill; n++) {
+                    var dayDiv = document.createElement('div');
+                    dayDiv.className = 'calendar-day other-month';
+                    dayDiv.textContent = n;
+                    grid.appendChild(dayDiv);
+                }
+            }
+        }
+
+        function calendarPrev() {
+            calendarCurrentDate.setDate(1);
+            calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() - 1);
+            renderCalendar();
+        }
+
+        function calendarNext() {
+            calendarCurrentDate.setDate(1);
+            calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() + 1);
+            renderCalendar();
+        }
+
+        function showDayPoints(dateStr) {
+            document.getElementById('selectedDateDisplay').textContent = formatDateRu(dateStr);
+            var container = document.getElementById('dayPointsList');
+            var points = plannerData.filter(function(p) { return p.date === dateStr; });
+
+            if (points.length === 0) {
+                container.innerHTML = '<small class="text-muted">Нет запланированных точек</small>';
+                return;
+            }
+
+            var html = '';
+            points.forEach(function(p) {
+                var globalIdx = plannerData.indexOf(p);
+                html += '<div class="day-point-item">' +
+                    '<span class="day-point-time">' + (p.time || '—') + '</span>' +
+                    '<span class="day-point-name">' + p.locName + '</span>' +
+                    '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFromPlanner(' + globalIdx + ')">' +
+                        '<i class="fas fa-times"></i>' +
+                    '</button>' +
+                '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        // ═══ Planner list rendering ═══
+        function renderPlannerList() {
+            var container = document.getElementById('plannerList');
+
+            if (plannerData.length === 0) {
+                container.innerHTML =
+                    '<div class="text-center py-5 text-muted" id="plannerEmpty">' +
+                        '<i class="fas fa-calendar-plus fa-2x mb-2"></i>' +
+                        '<p class="mb-0">Нажмите <i class="fas fa-calendar"></i> на карте, чтобы добавить точку в календарь</p>' +
+                    '</div>';
+                return;
+            }
+
+            // Sort by date then time
+            var sorted = plannerData.map(function(p, i) { return { item: p, idx: i }; })
+                .sort(function(a, b) {
+                    if (a.item.date !== b.item.date) return a.item.date.localeCompare(b.item.date);
+                    return (a.item.time || '').localeCompare(b.item.time || '');
+                });
+
+            var html = '';
+            var lastDate = '';
+            sorted.forEach(function(entry) {
+                var p = entry.item;
+                var idx = entry.idx;
+
+                // Date header
+                if (p.date !== lastDate) {
+                    if (lastDate !== '') html += '</div>'; // close previous group
+                    lastDate = p.date;
+                    html += '<div class="planner-date-group">' +
+                        '<div class="planner-date-header">' + formatDateRu(p.date) + '</div>';
+                }
+
+                html += '<div class="planner-item">' +
+                    '<div class="planner-item-time"><i class="fas fa-clock"></i> ' + (p.time || '—') + '</div>' +
+                    '<div class="planner-item-name">' + p.locName + '</div>' +
+                    '<div class="planner-item-actions">' +
+                        '<button type="button" class="btn btn-sm btn-outline-dark" onclick="focusPlannerPoint(' + p.locId + ')" title="Показать на карте"><i class="fas fa-map-marker-alt"></i></button>' +
+                        '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFromPlanner(' + idx + ')" title="Удалить"><i class="fas fa-trash"></i></button>' +
+                    '</div>' +
+                '</div>';
+            });
+            if (lastDate !== '') html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        function focusPlannerPoint(locId) {
+            var loc = findLoc(locId);
+            if (loc) {
+                switchTab('map');
+                focusLocation(locId, loc.latitude || loc.Latitude, loc.longitude || loc.Longitude);
+            }
+        }
+
+        // ═══ Build route from planner points ═══
+        function buildRouteFromPlanner() {
+            if (plannerData.length < 2) {
+                alert('Добавьте хотя бы 2 точки в план');
+                return;
+            }
+
+            // Sort by date/time
+            var sorted = plannerData.slice().sort(function(a, b) {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return (a.time || '').localeCompare(b.time || '');
+            });
+
+            // Store route points for the Routes page
+            var routePoints = sorted.map(function(p) {
+                var loc = findLoc(p.locId);
+                return {
+                    locId: p.locId,
+                    locName: p.locName,
+                    date: p.date,
+                    time: p.time,
+                    lat: loc ? (loc.latitude || loc.Latitude) : 0,
+                    lng: loc ? (loc.longitude || loc.Longitude) : 0
+                };
+            });
+            localStorage.setItem('gt_route_build', JSON.stringify(routePoints));
+
+            // Navigate to Routes page
+            window.location.href = '/Route/Create?fromPlanner=true';
+        }
+
+        // Override addToCalendar to also add to planner
+        var origAddToCalendar = addToCalendar;
+        function addToCalendar(id) {
+            if (!requireAuth('Добавить в календарь')) return;
+            var loc = findLoc(id);
+            if (!loc) return;
+            var name = loc.name || loc.Name;
+            var date = prompt('Введите дату (ГГГГ-ММ-ДД):', new Date().toISOString().split('T')[0]);
+            if (!date) return;
+            var time = prompt('Введите время:', '12:00');
+            if (addToPlanner(id, name, date, time)) {
+                alert('Добавлено: ' + name + ' на ' + formatDateRu(date) + ' ' + (time || '12:00') + ' 📅');
+            }
+        }
+
+        // Init planner on load
+        renderCalendar();
+        renderPlannerList();
+        updatePlannerCount();
+
+        // Event listeners
         document.getElementById('searchInput').addEventListener('input', updateResetButtons);
         document.getElementById('typeFilter').addEventListener('change', updateResetButtons);
-        document.getElementById('fandomFilter').addEventListener('change', updateResetButtons);
         document.getElementById('categoryFilter').addEventListener('change', updateResetButtons);
         document.getElementById('ratingFilter').addEventListener('change', updateResetButtons);
         document.getElementById('sortFilter').addEventListener('change', updateResetButtons);
         document.getElementById('searchInput').addEventListener('keypress', function(e) { if (e.key === 'Enter') applyFilters(); });
+
+        // Handle tab parameter from URL
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            var tab = params.get('tab');
+            if (tab && ['map', 'planner', 'reviews'].indexOf(tab) !== -1) {
+                switchTab(tab);
+            }
+        })();
     </script>
 }
 
@@ -261,5 +1345,14 @@
         LocationType.Shop => "Магазин",
         LocationType.ArtObject => "Арт-объект",
         _ => type.ToString()
+    };
+
+    private string GetFandomEmoji(FandomCategory cat) => cat switch
+    {
+        FandomCategory.Anime => "🎌",
+        FandomCategory.Comics => "💥",
+        FandomCategory.VideoGames => "🎮",
+        FandomCategory.BoardGames => "🎲",
+        _ => "⭐"
     };
 }

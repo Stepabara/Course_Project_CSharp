@@ -16,8 +16,10 @@ public class LocationListViewModel
     public double AverageRating { get; set; }
     public int ReviewCount { get; set; }
     public string? MainImagePath { get; set; }
+    public List<int> FandomIds { get; set; } = new();
     public List<string> FandomNames { get; set; } = new();
     public string CategoryName { get; set; } = string.Empty;
+    public string WorkingHoursJson { get; set; } = "{}";
     public List<Promotion> ActivePromotions { get; set; } = new();
 }
 
@@ -76,6 +78,7 @@ public class LocationFilterViewModel
     public LocationType? Type { get; set; }
     public int? CategoryId { get; set; }
     public int? FandomId { get; set; }
+    public List<int> FandomIds { get; set; } = new();
     public double? MinRating { get; set; }
     public string SortBy { get; set; } = "rating"; // rating, name, newest
 }

@@ -49,12 +49,33 @@ public class ProfileController : Controller
         return View(model);
     }
 
+    // ═══ API for Profile Modal ═══
+    [HttpGet]
+    public async Task<IActionResult> GetProfileData()
+    {
+        var userId = AccountController.GetUserId(HttpContext);
+        if (!userId.HasValue) return Json(new { error = "not_authenticated" });
+
+        var user = await _context.Users.FindAsync(userId.Value);
+        if (user == null) return Json(new { error = "not_found" });
+
+        return Json(new
+        {
+            user.Id,
+            user.Name,
+            user.Email,
+            Role = user.Role.ToString(),
+            user.CompanyName,
+            user.AvatarPath,
+            user.RegisteredAt
+        });
+    }
+
     [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Update(string name, string email, string? companyName)
+    public async Task<IActionResult> Update(string name, string email, string? companyName, string? password)
     {
         if (!AccountController.IsAuthenticated(HttpContext))
-            return RedirectToAction("Login", "Account");
+            return Unauthorized();
 
         var userId = AccountController.GetUserId(HttpContext)!.Value;
         var user = await _context.Users.FindAsync(userId);
@@ -63,8 +84,7 @@ public class ProfileController : Controller
         // Check email uniqueness
         if (await _context.Users.AnyAsync(u => u.Email == email && u.Id != userId))
         {
-            ModelState.AddModelError("", "Пользователь с таким email уже существует");
-            return RedirectToAction("Index");
+            return BadRequest("Пользователь с таким email уже существует");
         }
 
         user.Name = name;
@@ -72,17 +92,20 @@ public class ProfileController : Controller
         if (user.Role == UserRole.Partner)
             user.CompanyName = companyName;
 
+        // Update password if provided
+        if (!string.IsNullOrWhiteSpace(password) && password.Length >= 6)
+        {
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password + "GeekTourSalt2024"));
+            user.PasswordHash = Convert.ToBase64String(bytes);
+        }
+
         await _context.SaveChangesAsync();
 
         // Update session
         HttpContext.Session.SetString("UserName", user.Name);
 
-        // Go back to the page user came from, or profile if no referer
-        var returnUrl = Request.Headers["Referer"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-            return Redirect(returnUrl);
-
-        return RedirectToAction("Index");
+        return Ok();
     }
 }
 

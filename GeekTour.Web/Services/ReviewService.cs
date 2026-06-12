@@ -102,4 +102,75 @@ public class ReviewService : IReviewService
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
     }
+
+    public async Task<List<ReviewViewModel>> GetFilteredAsync(string? searchLocation = null, int? userId = null)
+    {
+        var query = _context.Reviews
+            .Include(r => r.User)
+            .Include(r => r.Location)
+            .Where(r => r.IsModerated)
+            .AsQueryable();
+
+        if (userId.HasValue)
+            query = query.Where(r => r.UserId == userId.Value);
+
+        if (!string.IsNullOrWhiteSpace(searchLocation))
+        {
+            var q = searchLocation.ToLower();
+            query = query.Where(r => r.Location.Name.ToLower().Contains(q));
+        }
+
+        var raw = await query
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => new
+            {
+                r.Id,
+                r.UserId,
+                r.User.Name,
+                r.User.AvatarPath,
+                r.LocationId,
+                LocationName = r.Location.Name,
+                r.Rating,
+                r.Text,
+                r.PhotoPaths,
+                r.CreatedAt,
+                r.OwnerResponse,
+                r.ResponseDate
+            }).ToListAsync();
+
+        return raw.Select(r => new ReviewViewModel
+        {
+            Id = r.Id,
+            UserId = r.UserId,
+            UserName = r.Name,
+            UserAvatar = r.AvatarPath,
+            LocationId = r.LocationId,
+            LocationName = r.LocationName,
+            Rating = r.Rating,
+            Text = r.Text,
+            PhotoPaths = string.IsNullOrEmpty(r.PhotoPaths) ? new List<string>() : r.PhotoPaths.Split(';').ToList(),
+            CreatedAt = r.CreatedAt,
+            OwnerResponse = r.OwnerResponse,
+            ResponseDate = r.ResponseDate
+        }).ToList();
+    }
+
+    public async Task<bool> UpdateAsync(int reviewId, int userId, int rating, string text)
+    {
+        var review = await _context.Reviews.FindAsync(reviewId);
+        if (review == null || review.UserId != userId) return false;
+        review.Rating = rating;
+        review.Text = text;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DeleteAsync(int reviewId, int userId)
+    {
+        var review = await _context.Reviews.FindAsync(reviewId);
+        if (review == null || review.UserId != userId) return false;
+        _context.Reviews.Remove(review);
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

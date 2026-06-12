@@ -134,4 +134,22 @@ public class RouteController : Controller
         if (route == null) return NotFound();
         return View("Details", route);
     }
+
+    // ═══ API for Profile Tab ═══
+    [HttpGet]
+    public async Task<IActionResult> GetMyRoutes()
+    {
+        var userId = AccountController.GetUserId(HttpContext);
+        if (!userId.HasValue) return Json(new List<object>());
+        var routes = await _routeService.GetUserRoutesAsync(userId.Value);
+        return Json(routes.Select(r => new
+        {
+            r.Id,
+            r.Name,
+            r.Description,
+            r.CreatedAt,
+            r.PointCount,
+            r.IsPublic
+        }));
+    }
 }

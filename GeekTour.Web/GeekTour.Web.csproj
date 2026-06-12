@@ -19,4 +19,8 @@
     <PackageReference Include="Microsoft.ML.Recommender" Version="0.21.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

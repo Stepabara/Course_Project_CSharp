@@ -1,5 +1,6 @@
 using GeekTour.Web.Models.Entities;
 using GeekTour.Web.Models.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace GeekTour.Web.Data;
 
@@ -8,6 +9,13 @@ public static class DbInitializer
     public static void Initialize(AppDbContext context)
     {
         context.Database.EnsureCreated();
+
+        // Add AvatarPath column if it doesn't exist (migration for existing DBs)
+        try
+        {
+            context.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN AvatarPath TEXT");
+        }
+        catch { /* ignore if column already exists */ }
 
         if (context.Users.Any()) return; // Already seeded
 
@@ -122,6 +130,45 @@ public static class DbInitializer
                 CategoryId = 3, // Арт-объект
                 OwnerId = partnerId,
                 IsActive = true
+            },
+            new()
+            {
+                Name = "GameStation Shop",
+                Description = "Магазин видеоигр, консолей и аксессуаров. Ретро и новые релизы, обмен и продажа б/у игр.",
+                Type = LocationType.Shop,
+                Address = "ул. Свердлова, 8, Минск",
+                Latitude = 53.8955,
+                Longitude = 27.5600,
+                WorkingHoursJson = "{\"monday\":\"10:00-21:00\",\"tuesday\":\"10:00-21:00\",\"wednesday\":\"10:00-21:00\",\"thursday\":\"10:00-21:00\",\"friday\":\"10:00-22:00\",\"saturday\":\"10:00-22:00\",\"sunday\":\"11:00-20:00\"}",
+                CategoryId = 2, // Магазин
+                OwnerId = partnerId,
+                IsActive = true
+            },
+            new()
+            {
+                Name = "Мир Фигурок",
+                Description = "Специализированный магазин коллекционных фигурок: Funko Pop, Nendoroid, модели из аниме и комиксов.",
+                Type = LocationType.Shop,
+                Address = "ул. Ленина, 44, Минск",
+                Latitude = 53.8990,
+                Longitude = 27.5445,
+                WorkingHoursJson = "{\"monday\":\"11:00-20:00\",\"tuesday\":\"11:00-20:00\",\"wednesday\":\"11:00-20:00\",\"thursday\":\"11:00-20:00\",\"friday\":\"11:00-21:00\",\"saturday\":\"10:00-21:00\",\"sunday\":\"12:00-18:00\"}",
+                CategoryId = 2, // Магазин
+                OwnerId = partnerId,
+                IsActive = true
+            },
+            new()
+            {
+                Name = "Гик-Стена",
+                Description = "Стена-инсталляция с муралами в стиле гик-культуры. Граффити с персонажами из видеоигр, аниме и комиксов. Фотозона.",
+                Type = LocationType.ArtObject,
+                Address = "ул. Мельникайте, 12, Минск",
+                Latitude = 53.9050,
+                Longitude = 27.5520,
+                WorkingHoursJson = "{\"monday\":\"00:00-23:59\",\"tuesday\":\"00:00-23:59\",\"wednesday\":\"00:00-23:59\",\"thursday\":\"00:00-23:59\",\"friday\":\"00:00-23:59\",\"saturday\":\"00:00-23:59\",\"sunday\":\"00:00-23:59\"}",
+                CategoryId = 3, // Арт-объект
+                OwnerId = partnerId,
+                IsActive = true
             }
         };
         context.Locations.AddRange(locations);
@@ -142,6 +189,18 @@ public static class DbInitializer
             new() { LocationId = locations[3].Id, FandomId = fandoms[8].Id },
             new() { LocationId = locations[4].Id, FandomId = fandoms[7].Id },
             new() { LocationId = locations[4].Id, FandomId = fandoms[2].Id },
+            // GameStation Shop — VideoGames, Cyberpunk
+            new() { LocationId = locations[5].Id, FandomId = fandoms[7].Id },
+            new() { LocationId = locations[5].Id, FandomId = fandoms[2].Id },
+            new() { LocationId = locations[5].Id, FandomId = fandoms[9].Id },
+            // Мир Фигурок — Anime, Comics, BoardGames
+            new() { LocationId = locations[6].Id, FandomId = fandoms[0].Id },
+            new() { LocationId = locations[6].Id, FandomId = fandoms[5].Id },
+            new() { LocationId = locations[6].Id, FandomId = fandoms[8].Id },
+            // Гик-Стена — VideoGames, Anime, Comics
+            new() { LocationId = locations[7].Id, FandomId = fandoms[7].Id },
+            new() { LocationId = locations[7].Id, FandomId = fandoms[0].Id },
+            new() { LocationId = locations[7].Id, FandomId = fandoms[5].Id },
         });
         context.SaveChanges();
 
@@ -158,6 +217,13 @@ public static class DbInitializer
             new() { UserId = touristId, LocationId = locations[2].Id, Rating = 4, Text = "Рекомендую! Коктейли вкусные, атмосфера атмосферная.", IsModerated = true, CreatedAt = DateTime.UtcNow.AddDays(-5) },
             new() { UserId = touristId, LocationId = locations[3].Id, Rating = 5, Text = "Провели тут целый день! D&D сессия была огонь.", IsModerated = true, CreatedAt = DateTime.UtcNow.AddDays(-3) },
             new() { UserId = touristId, LocationId = locations[4].Id, Rating = 3, Text = "Неплохо, но хотелось бы больше интерактива.", IsModerated = true, CreatedAt = DateTime.UtcNow.AddDays(-1) },
+            // New locations reviews
+            new() { UserId = touristId, LocationId = locations[5].Id, Rating = 5, Text = "Огромный выбор игр! Нашёл редкую копию для PS2. Продавцы знают своё дело.", IsModerated = true, CreatedAt = DateTime.UtcNow.AddDays(-12) },
+            new() { UserId = touristId, LocationId = locations[5].Id, Rating = 4, Text = "Хороший магазин, но хотелось бы больше ретро-консолей в наличии.", IsModerated = true, CreatedAt = DateTime.UtcNow.AddDays(-6) },
+            new() { UserId = touristId, LocationId = locations[6].Id, Rating = 5, Text = "Наконец-то магазин где есть Nendoroid из новых аниме! Цены адекватные.", IsModerated = true, CreatedAt = DateTime.UtcNow.AddDays(-18) },
+            new() { UserId = touristId, LocationId = locations[6].Id, Rating = 4, Text = "Отличная коллекция фигурок. Есть редкие экземпляры.", IsModerated = true, CreatedAt = DateTime.UtcNow.AddDays(-9) },
+            new() { UserId = touristId, LocationId = locations[7].Id, Rating = 5, Text = "Невероятная стена! Фоткались всем клубом. Обязательно к посещению.", IsModerated = true, CreatedAt = DateTime.UtcNow.AddDays(-14) },
+            new() { UserId = touristId, LocationId = locations[7].Id, Rating = 4, Text = "Красиво и атмосферно. Хотелось бы, чтобы обновляли муралы чаще.", IsModerated = true, CreatedAt = DateTime.UtcNow.AddDays(-7) },
             // Reviews on moderation
             new() { UserId = touristId, LocationId = locations[0].Id, Rating = 2, Text = "Что-то не очень, обслуживание медленное.", IsModerated = false, CreatedAt = DateTime.UtcNow }
         };

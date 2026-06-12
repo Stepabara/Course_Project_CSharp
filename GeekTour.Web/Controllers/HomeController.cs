@@ -37,7 +37,7 @@ public class HomeController : Controller
     public async Task<IActionResult> GetFilteredLocations(
         string? searchQuery = null,
         int? type = null,
-        int? fandomId = null,
+        [FromQuery] List<int>? fandomId = null,
         int? categoryId = null,
         double? minRating = null,
         string sortBy = "rating")
@@ -46,7 +46,7 @@ public class HomeController : Controller
         {
             SearchQuery = searchQuery,
             Type = type.HasValue ? (LocationType?)type.Value : null,
-            FandomId = fandomId,
+            FandomIds = fandomId ?? new List<int>(),
             CategoryId = categoryId,
             MinRating = minRating,
             SortBy = sortBy
@@ -58,13 +58,18 @@ public class HomeController : Controller
         {
             l.Id,
             l.Name,
+            l.Description,
+            l.Address,
             l.Latitude,
             l.Longitude,
             l.AverageRating,
             l.Type,
             l.ReviewCount,
             l.CategoryName,
-            l.FandomNames
+            l.FandomIds,
+            l.FandomNames,
+            l.WorkingHoursJson,
+            l.MainImagePath
         }));
     }
 

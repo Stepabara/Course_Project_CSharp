@@ -6,7 +6,11 @@ namespace GeekTour.Web.Models.ViewModels;
 public class ReviewViewModel
 {
     public int Id { get; set; }
+    public int UserId { get; set; }
     public string UserName { get; set; } = string.Empty;
+    public string? UserAvatar { get; set; }
+    public int LocationId { get; set; }
+    public string LocationName { get; set; } = string.Empty;
     public int Rating { get; set; }
     public string Text { get; set; } = string.Empty;
     public List<string> PhotoPaths { get; set; } = new();
