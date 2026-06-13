@@ -1941,3 +1941,23 @@ textarea.form-control {
     pointer-events: none;
     border-right: none !important;
 }
+
+/* ═══ Sidebar collapse toggle ═══ */
+.sidebar-toggle-btn {
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    transition: transform 0.2s ease;
+}
+
+.sidebar-collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    opacity: 0;
+    pointer-events: none;
+    border: none !important;
+    transition: width 0.25s ease, opacity 0.15s ease;
+}

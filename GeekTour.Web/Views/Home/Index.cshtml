@@ -12,6 +12,9 @@
     <!-- ═══ Left Sidebar: Filters (only for Map tab) ═══ -->
     <aside class="home-sidebar tab-map-sidebar" id="homeSidebar">
         <div class="home-sidebar-header">
+            <button type="button" class="btn btn-sm btn-outline-dark sidebar-toggle-btn" onclick="toggleSidebar()" title="Скрыть фильтры">
+                <i class="fas fa-chevron-left" id="sidebarToggleIcon"></i>
+            </button>
             <h5><i class="fas fa-filter"></i> Фильтры</h5>
             <button type="button" class="btn btn-sm btn-outline-dark" id="sidebarResetBtn" onclick="resetAllFilters()" style="display:none;">
                 <i class="fas fa-times"></i> Сбросить
@@ -120,11 +123,6 @@
                 <div class="home-map-counter">
                     <span class="badge bg-dark" id="locCount">@Model.Count</span> заведений
                 </div>
-                <button type="button" class="btn btn-dark btn-sm" id="resetFiltersBtn"
-                        style="position:absolute;top:12px;right:12px;z-index:1000;display:none;"
-                        onclick="resetAllFilters()">
-                    <i class="fas fa-times"></i> Сбросить фильтры
-                </button>
             </div>
         </div>
 
@@ -965,14 +963,25 @@
         }
 
         function updateResetButtons() {
-            var mapBtn = document.getElementById('resetFiltersBtn');
             var sideBtn = document.getElementById('sidebarResetBtn');
             if (hasActiveFilters()) {
-                if (mapBtn) mapBtn.style.display = 'block';
                 if (sideBtn) sideBtn.style.display = 'block';
             } else {
-                if (mapBtn) mapBtn.style.display = 'none';
                 if (sideBtn) sideBtn.style.display = 'none';
+            }
+        }
+
+        var sidebarCollapsed = false;
+        function toggleSidebar() {
+            var sidebar = document.getElementById('homeSidebar');
+            var icon = document.getElementById('sidebarToggleIcon');
+            sidebarCollapsed = !sidebarCollapsed;
+            if (sidebarCollapsed) {
+                sidebar.classList.add('sidebar-collapsed');
+                if (icon) icon.classList.replace('fa-chevron-left', 'fa-chevron-right');
+            } else {
+                sidebar.classList.remove('sidebar-collapsed');
+                if (icon) icon.classList.replace('fa-chevron-right', 'fa-chevron-left');
             }
         }
 
@@ -1015,9 +1024,7 @@
             document.getElementById('categoryFilter').value = '';
             document.getElementById('ratingFilter').value = '';
             document.getElementById('sortFilter').value = 'rating';
-            var mapBtn = document.getElementById('resetFiltersBtn');
             var sideBtn = document.getElementById('sidebarResetBtn');
-            if (mapBtn) mapBtn.style.display = 'none';
             if (sideBtn) sideBtn.style.display = 'none';
             document.getElementById('loadingOverlay').style.display = 'flex';
             fetch('/Home/GetFilteredLocations')
