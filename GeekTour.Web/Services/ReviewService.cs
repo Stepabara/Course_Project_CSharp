@@ -83,7 +83,7 @@ public class ReviewService : IReviewService
     {
         return await _context.Reviews
             .Include(r => r.User)
-            .Where(r => r.LocationId == locationId && r.IsModerated)
+            .Where(r => r.LocationId == locationId)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
     }

@@ -16,6 +16,7 @@ public class TourRoute
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsPublic { get; set; }
+    public bool IsFavorite { get; set; }
 
     [MaxLength(100)]
     public string? ShareLink { get; set; }

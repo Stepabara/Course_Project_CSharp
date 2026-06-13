@@ -13,6 +13,7 @@ public class RouteListViewModel
     public int EstimatedTimeMinutes { get; set; }
     public int PointCount { get; set; }
     public bool IsPublic { get; set; }
+    public bool IsFavorite { get; set; }
     public string? ShareLink { get; set; }
 }
 

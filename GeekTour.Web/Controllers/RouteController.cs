@@ -124,7 +124,19 @@ public class RouteController : Controller
         var userId = AccountController.GetUserId(HttpContext)!.Value;
         var link = await _routeService.GenerateShareLinkAsync(routeId, userId);
         if (link == null) return NotFound();
-        return RedirectToAction("Details", new { id = routeId });
+        return Json(new { success = true, shareLink = link });
+    }
+
+    [HttpDelete]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var userId = AccountController.GetUserId(HttpContext);
+        if (!userId.HasValue) return Unauthorized();
+        var route = await _context.Routes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId.Value);
+        if (route == null) return NotFound();
+        _context.Routes.Remove(route);
+        await _context.SaveChangesAsync();
+        return Ok(new { success = true });
     }
 
     [HttpGet]
@@ -136,6 +148,16 @@ public class RouteController : Controller
     }
 
     // ═══ API for Profile Tab ═══
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleFavorite(int routeId)
+    {
+        var userId = AccountController.GetUserId(HttpContext);
+        if (!userId.HasValue) return Unauthorized();
+        var isFav = await _routeService.ToggleFavoriteAsync(routeId, userId.Value);
+        return Json(new { success = true, isFavorite = isFav });
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetMyRoutes()
     {
@@ -149,7 +171,8 @@ public class RouteController : Controller
             r.Description,
             r.CreatedAt,
             r.PointCount,
-            r.IsPublic
+            r.IsPublic,
+            r.IsFavorite
         }));
     }
 
@@ -164,7 +187,8 @@ public class RouteController : Controller
             r.Description,
             r.CreatedAt,
             r.PointCount,
-            r.IsPublic
+            r.IsPublic,
+            r.IsFavorite
         }));
     }
 
@@ -185,9 +209,22 @@ public class RouteController : Controller
                 p.LocationId,
                 p.LocationName,
                 p.LocationAddress,
+                p.Latitude,
+                p.Longitude,
                 p.PlannedVisitTime
             })
         });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetPublic([FromForm] int routeId, bool isPublic)
+    {
+        var userId = AccountController.GetUserId(HttpContext);
+        if (!userId.HasValue) return Unauthorized();
+        var ok = await _routeService.SetPublicAsync(routeId, userId.Value, isPublic);
+        if (!ok) return NotFound();
+        return Json(new { success = true });
     }
 
     [HttpPost]

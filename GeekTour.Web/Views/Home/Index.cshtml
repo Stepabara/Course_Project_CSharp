@@ -8,6 +8,8 @@
     var isAuthenticated = Context.Session.GetInt32("UserId") != null;
 }
 
+@Html.AntiForgeryToken()
+
 <div class="home-layout">
     <!-- ═══ Sidebar Toggle Button (always visible on Map tab) ═══ -->
     <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Скрыть/показать фильтры">
@@ -105,19 +107,6 @@
 
     <!-- ═══ Main Content Area ═══ -->
     <div class="home-content">
-        <!-- Tab navigation -->
-        <div class="home-tabs">
-            <button type="button" class="home-tab active" data-tab="map" onclick="switchTab('map')">
-                <i class="fas fa-map-marked-alt"></i> Карта
-            </button>
-            <button type="button" class="home-tab" data-tab="planner" onclick="switchTab('planner')">
-                <i class="fas fa-calendar-alt"></i> Планировщик
-            </button>
-            <button type="button" class="home-tab" data-tab="reviews" onclick="switchTab('reviews')">
-                <i class="fas fa-star"></i> Отзывы
-            </button>
-        </div>
-
         <!-- Tab: Map -->
         <div class="home-tab-content active" id="tab-map">
             <div class="home-map">
@@ -248,101 +237,13 @@
             </div>
         </div>
 
-        <!-- Tab: Reviews -->
-        <div class="home-tab-content" id="tab-reviews">
-            <div class="reviews-tab-container">
-                <div class="row g-3">
-                    <!-- Left: Review form -->
-                    <div class="col-lg-4">
-                        <div class="card reviews-card">
-                            <div class="card-header">
-                                <h5 class="mb-0"><i class="fas fa-pen"></i> Написать отзыв</h5>
-                            </div>
-                            <div class="card-body">
-                                @if (isAuthenticated)
-                                {
-                                    <form id="reviewFormTab" onsubmit="submitReviewTab(event)">
-                                        <div class="mb-3">
-                                            <label class="form-label">Заведение</label>
-                                            <select class="form-select" id="reviewLocationSelect" required>
-                                                <option value="">Выберите заведение...</option>
-                                                @foreach (var loc in Model)
-                                                {
-                                                    <option value="@loc.Id">@loc.Name</option>
-                                                }
-                                            </select>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Оценка</label>
-                                            <div class="star-rating d-flex gap-1" id="tabStarRating">
-                                                @for (int i = 1; i <= 5; i++)
-                                                {
-                                                    <button type="button" class="btn star-btn" data-value="@i" onclick="setTabRating(@i)" onmouseover="hoverTabRating(@i)" onmouseout="resetTabHover()">
-                                                        <i class="far fa-star" id="tab-star-@i"></i>
-                                                    </button>
-                                                }
-                                            </div>
-                                            <input type="hidden" id="tabRatingInput" value="0" />
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Текст отзыва</label>
-                                            <textarea class="form-control" id="tabReviewText" rows="4" placeholder="Поделитесь впечатлениями..." required></textarea>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Фото</label>
-                                            <input type="file" class="form-control" id="tabReviewPhotos" multiple accept="image/*" onchange="previewTabPhotos(this)" />
-                                            <div id="tabPhotoPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
-                                        </div>
-                                        <button type="submit" class="btn btn-dark w-100" id="tabSubmitReviewBtn" disabled>
-                                            <i class="fas fa-paper-plane"></i> Отправить
-                                        </button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <div class="text-center py-4">
-                                        <i class="fas fa-lock fa-2x text-muted mb-2"></i>
-                                        <p class="text-muted mb-3">Войдите, чтобы оставлять отзывы</p>
-                                        <a href="/Account/Login" class="btn btn-dark btn-sm me-1">Войти</a>
-                                        <a href="/Account/Register" class="btn btn-outline-dark btn-sm">Регистрация</a>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Right: Reviews feed -->
-                    <div class="col-lg-8">
-                        <div class="card reviews-card">
-                            <div class="card-header">
-                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                    <h5 class="mb-0"><i class="fas fa-comments"></i> Лента отзывов</h5>
-                                    <div class="reviews-search">
-                                        <input type="text" class="form-control form-control-sm" id="reviewSearchInput" placeholder="Поиск по заведению..." oninput="filterReviews()" />
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body p-0">
-                                <div id="reviewsFeed" class="reviews-feed">
-                                    <div class="text-center py-5 text-muted">
-                                        <div class="spinner-border spinner-border-sm" role="status"></div>
-                                        <p class="mt-2 mb-0">Загрузка отзывов...</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </div>
 </div>
 
-<!-- ═══ Location Detail Modal ═══ -->
-<div class="modal-overlay" id="locationModal" onclick="if(event.target===this)closeModal()">
-    <div class="modal-sheet">
-        <button type="button" class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
-        <div id="modalContent">
+<!-- ═══ Location Modal ═══ -->
+<div class="loc-sheet-overlay" id="locSheetOverlay" onclick="if(event.target===this)closeLocSheet()">
+    <div class="loc-sheet" id="locSheet">
+        <div id="locSheetContent">
             <!-- Content loaded dynamically -->
         </div>
     </div>
@@ -435,17 +336,18 @@
         }
 
         function showAuthPrompt(action) {
-            var modal = document.getElementById('locationModal');
-            var content = document.getElementById('modalContent');
+            var sheet = document.getElementById('locSheetOverlay');
+            var content = document.getElementById('locSheetContent');
             content.innerHTML =
-                '<div class="text-center py-5">' +
+                '<div class="loc-sheet-handle"></div>' +
+                '<div style="padding:40px 20px;text-align:center;">' +
                     '<i class="fas fa-lock fa-3x text-muted mb-3"></i>' +
-                    '<h4>Требуется авторизация</h4>' +
+                    '<h4 style="font-family:var(--font-heading);font-weight:700;">Требуется авторизация</h4>' +
                     '<p class="text-muted mb-4">Чтобы использовать функцию «' + action + '», войдите в свой аккаунт или зарегистрируйтесь.</p>' +
                     '<a href="/Account/Login" class="btn btn-dark btn-lg me-2"><i class="fas fa-sign-in-alt"></i> Войти</a>' +
                     '<a href="/Account/Register" class="btn btn-outline-dark btn-lg"><i class="fas fa-user-plus"></i> Регистрация</a>' +
                 '</div>';
-            modal.classList.add('open');
+            sheet.classList.add('open');
         }
 
         // ═══ Build rich popup ═══
@@ -515,8 +417,10 @@
                 if (!lat || !lng) return;
                 var type = loc.type !== undefined ? loc.type : loc.Type;
                 var marker = L.marker([lat, lng], { icon: createColoredIcon(type) })
-                    .addTo(map)
-                    .bindPopup(buildPopup(loc));
+                    .addTo(map);
+                marker.on('click', function() {
+                    openLocationModal(loc.id || loc.Id);
+                });
                 markers.push(marker);
                 markerMap[loc.id || loc.Id] = marker;
                 bounds.extend([lat, lng]);
@@ -528,30 +432,33 @@
         }
 
         function focusLocation(id, lat, lng) {
-            var marker = markerMap[id];
-            if (marker) { map.setView([lat, lng], 15); marker.openPopup(); }
+            map.setView([lat, lng], 15);
+            openLocationModal(id);
         }
 
         // ═══ Load initial locations ═══
         allLocations = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(l => new { l.Id, l.Name, l.Description, l.Address, l.Latitude, l.Longitude, l.AverageRating, l.Type, l.FandomIds, l.FandomNames, l.WorkingHoursJson, l.MainImagePath })));
         addMarkers(allLocations);
 
-        // ═══ Location Detail Modal (like Yandex Maps) ═══
+        // ═══ Location Bottom Sheet ═══
+        var currentLocId = null;
+        var currentLocData = null;
+
         function openLocationModal(id) {
+            currentLocId = id;
             var loc = findLoc(id);
             if (!loc) {
-                // Fetch from server if not in current filtered set
                 fetch('/Location/GetLocationData?id=' + id)
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
-                        if (data) renderModal(data);
+                        if (data) renderLocSheet(data);
                     });
                 return;
             }
-            renderModal(loc);
+            renderLocSheet(loc);
         }
 
-        function renderModal(loc) {
+        function renderLocSheet(loc) {
             var id = loc.id || loc.Id;
             var name = loc.name || loc.Name;
             var type = loc.type !== undefined ? loc.type : loc.Type;
@@ -563,75 +470,290 @@
             var wh = loc.workingHoursJson || loc.WorkingHoursJson || '{}';
             var reviewCount = loc.reviewCount !== undefined ? loc.reviewCount : loc.ReviewCount || 0;
             var catName = loc.categoryName || loc.CategoryName || '';
+            currentLocData = loc;
 
+            // Stars
             var starsHtml = '';
             for (var i = 1; i <= 5; i++) {
                 starsHtml += '<i class="fa-star ' + (i <= Math.round(rating) ? 'fas' : 'far') + '" style="color:#FFC107;"></i>';
             }
 
+            // Fandoms
             var fandomsHtml = fandoms.length > 0
-                ? '<div class="mb-3">' + fandoms.map(function(f) {
-                    return '<span class="badge bg-secondary me-1">' + f + '</span>';
+                ? '<div class="loc-fandoms">' + fandoms.map(function(f) {
+                    return '<span class="badge bg-secondary">' + f + '</span>';
                 }).join('') + '</div>'
                 : '';
 
+            // Working hours
             var whHtml = '';
             try {
                 var h = JSON.parse(wh);
                 var days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-                var names = ['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'];
-                whHtml = '<table class="table table-sm working-hours mb-0">';
+                var names = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+                whHtml = '<table class="loc-wh-table"><tbody>';
                 for (var i = 0; i < 7; i++) {
                     var v = h[days[i]] || '—';
                     if (v === 'closed') v = 'Закрыто';
-                    whHtml += '<tr><th>' + names[i] + '</th><td>' + v + '</td></tr>';
+                    whHtml += '<tr><td>' + names[i] + '</td><td>' + v + '</td></tr>';
                 }
-                whHtml += '</table>';
-            } catch(e) { whHtml = '<p class="text-muted">Не указано</p>'; }
+                whHtml += '</tbody></table>';
+            } catch(e) { whHtml = '<p class="text-muted" style="font-size:0.85rem;">Не указано</p>'; }
 
+            // Hero image
             var imgHtml = img
-                ? '<div class="modal-hero-img" style="background-image:url(\'' + img + '\');"></div>'
-                : '<div class="modal-hero-img modal-hero-placeholder"><span>' + typeEmoji(type) + '</span><div>' + typeName(type) + '</div></div>';
+                ? '<div class="loc-hero-img" style="background-image:url(\'' + img + '\');"></div>'
+                : '<div class="loc-hero-img loc-hero-placeholder"><span>' + typeEmoji(type) + '</span><div>' + typeName(type) + '</div></div>';
 
-            var routeBtnHtml = isAuthenticated
-                ? '<button class="btn btn-dark" onclick="addToRoute(' + id + '); closeModal();"><i class="fas fa-plus"></i> В маршрут</button>'
-                : '<button class="btn btn-dark" onclick="closeModal(); requireAuth(\'Добавить в маршрут\')"><i class="fas fa-plus"></i> В маршрут</button>';
-            var calBtnHtml = isAuthenticated
-                ? '<button class="btn btn-outline-dark" onclick="addToCalendar(' + id + '); closeModal();"><i class="fas fa-calendar"></i> В календарь</button>'
-                : '<button class="btn btn-outline-dark" onclick="closeModal(); requireAuth(\'Добавить в календарь\')"><i class="fas fa-calendar"></i> В календарь</button>';
-            var reviewBtnHtml = isAuthenticated
-                ? '<button class="btn btn-outline-dark" onclick="closeModal(); writeReview(' + id + ')"><i class="fas fa-pen"></i> Отзыв</button>'
-                : '<button class="btn btn-outline-dark" onclick="closeModal(); requireAuth(\'Написать отзыв\')"><i class="fas fa-pen"></i> Отзыв</button>';
+            // Planner button
+            var plannerBtnHtml = isAuthenticated
+                ? '<button class="loc-add-btn" onclick="addToPlannerFromSheet(' + id + ',\'' + name.replace(/'/g, "\\'") + '\')" title="Добавить в планер"><i class="fas fa-plus"></i></button>'
+                : '<button class="loc-add-btn" onclick="closeLocSheet(); requireAuth(\'Добавить в планер\')" title="Добавить в планер"><i class="fas fa-plus"></i></button>';
 
-            var content = document.getElementById('modalContent');
-            content.innerHTML =
-                '<div class="modal-detail">' +
-                    imgHtml +
-                    '<div class="modal-body">' +
-                        '<div class="modal-type-badge mb-2">' + typeEmoji(type) + ' ' + typeName(type) + (catName ? ' · ' + catName : '') + '</div>' +
-                        '<h3 class="modal-title">' + name + '</h3>' +
-                        '<div class="modal-rating mb-2">' + starsHtml + ' <strong>' + Number(rating).toFixed(1) + '</strong> <span class="text-muted">(' + reviewCount + ' отзывов)</span></div>' +
-                        fandomsHtml +
-                        '<p class="modal-desc">' + (desc || 'Описание отсутствует') + '</p>' +
-                        '<div class="modal-info-row"><i class="fas fa-map-marker-alt"></i><span>' + addr + '</span></div>' +
-                        '<h6 class="mt-3 mb-2"><i class="fas fa-clock"></i> Часы работы</h6>' +
-                        whHtml +
-                        '<div class="modal-actions">' +
-                            routeBtnHtml + calBtnHtml + reviewBtnHtml +
-                        '</div>' +
+            // Build content
+            var html =
+                '<div class="loc-sheet-header">' +
+                    '<span class="loc-name">' + name + '</span>' +
+                    '<div class="loc-header-btns">' +
+                        plannerBtnHtml +
+                        '<button type="button" class="loc-share-btn" onclick="shareLocation(' + id + ')" title="Поделиться"><i class="fas fa-share-alt"></i></button>' +
+                        '<button type="button" class="loc-close-btn" onclick="closeLocSheet()"><i class="fas fa-times"></i></button>' +
                     '</div>' +
+                '</div>' +
+                '<div class="loc-sheet-body">' +
+                    imgHtml +
+                    '<div class="loc-type-badge">' + typeEmoji(type) + ' ' + typeName(type) + (catName ? ' · ' + catName : '') + '</div>' +
+                    '<div class="loc-rating">' + starsHtml + ' <strong>' + Number(rating).toFixed(1) + '</strong> <span class="text-muted">(' + reviewCount + ' отзывов)</span></div>' +
+                    fandomsHtml +
+                    (desc ? '<p class="loc-desc">' + desc + '</p>' : '') +
+                    '<div class="loc-info-row"><i class="fas fa-map-marker-alt"></i><span>' + addr + '</span></div>' +
+                    '<div style="font-weight:600;font-size:0.9rem;margin:12px 0 6px;"><i class="fas fa-clock"></i> Часы работы</div>' +
+                    whHtml +
                 '</div>';
 
-            document.getElementById('locationModal').classList.add('open');
+            document.getElementById('locSheetContent').innerHTML = html;
+
+            // Load reviews
+            loadLocReviews(id);
+
+            document.getElementById('locSheetOverlay').classList.add('open');
+            document.body.style.overflow = 'hidden';
         }
 
-        function closeModal() {
-            document.getElementById('locationModal').classList.remove('open');
+        function loadLocReviews(id) {
+            fetch('/Review/GetByLocation?locationId=' + id)
+                .then(function(r) { return r.json(); })
+                .then(function(reviews) {
+                    var body = document.querySelector('#locSheet .loc-sheet-body');
+                    if (!body) return;
+
+                    // Remove old reviews section and form if reloading
+                    var oldSection = body.querySelector('.loc-reviews-section');
+                    if (oldSection) oldSection.remove();
+                    var oldForm = body.querySelector('.loc-review-form');
+                    if (oldForm) oldForm.remove();
+
+                    var section = document.createElement('div');
+                    section.className = 'loc-reviews-section';
+
+                    var title = '<div class="loc-reviews-title"><i class="fas fa-comments"></i> Отзывы</div>';
+                    var reviewsHtml = '';
+
+                    if (!reviews || reviews.length === 0) {
+                        reviewsHtml = '<div class="loc-review-empty">Пока нет отзывов. Будьте первым!</div>';
+                    } else {
+                        reviews.forEach(function(r) {
+                            var rStars = '';
+                            for (var i = 1; i <= 5; i++) {
+                                rStars += '<i class="fa-star ' + (i <= r.rating ? 'fas' : 'far') + '"></i>';
+                            }
+                            var dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString('ru-RU') : '';
+                            var photosHtml = '';
+                            if (r.photoPaths) {
+                                var photos = r.photoPaths.split(';').filter(function(p) { return p && p.trim(); });
+                                if (photos.length > 0) {
+                                    photosHtml = '<div class="rev-photos">';
+                                    photos.forEach(function(p) {
+                                        photosHtml += '<img src="' + p.trim() + '" class="rev-photo" alt="" onerror="this.style.display=\'none\'" />';
+                                    });
+                                    photosHtml += '</div>';
+                                }
+                            }
+                            reviewsHtml +=
+                                '<div class="loc-review-item">' +
+                                    '<div class="rev-header">' +
+                                        '<span class="rev-author">' + (r.userName || 'Аноним') + '</span>' +
+                                        '<span class="rev-date">' + dateStr + '</span>' +
+                                    '</div>' +
+                                    '<div class="rev-stars">' + rStars + '</div>' +
+                                    '<div class="rev-text">' + (r.text || '') + '</div>' +
+                                    photosHtml +
+                                '</div>';
+                        });
+                    }
+
+                    section.innerHTML = title + reviewsHtml;
+                    body.appendChild(section);
+
+                    // Append review form
+                    if (isAuthenticated) {
+                        var formHtml =
+                            '<div class="loc-review-form" id="locReviewForm">' +
+                                '<div class="loc-star-input" id="locStarInput">' +
+                                    [1,2,3,4,5].map(function(i) {
+                                        return '<button type="button" data-val="' + i + '" onclick="setLocRating(' + i + ')" onmouseover="hoverLocRating(' + i + ')" onmouseout="resetLocRating()"><i class="far fa-star" id="loc-star-' + i + '"></i></button>';
+                                    }).join('') +
+                                '</div>' +
+                                '<textarea id="locReviewText" rows="2" placeholder="Напишите ваш отзыв..."></textarea>' +
+                                '<div class="loc-review-photo">' +
+                                    '<label class="loc-review-photo-label" for="locReviewPhoto">' +
+                                        '<i class="fas fa-camera"></i> Добавить фото' +
+                                    '</label>' +
+                                    '<input type="file" id="locReviewPhoto" accept="image/*" multiple style="display:none" onchange="handleLocPhotoSelect(this)"/>' +
+                                    '<div id="locPhotoPreview" class="loc-review-photo-preview"></div>' +
+                                '</div>' +
+                                '<div class="loc-review-submit">' +
+                                    '<button class="btn-submit" onclick="submitLocReview(' + id + ')"><i class="fas fa-paper-plane"></i> Отправить</button>' +
+                                    '<button class="btn-cancel" onclick="closeLocSheet()">Отмена</button>' +
+                                '</div>' +
+                            '</div>';
+                        body.insertAdjacentHTML('beforeend', formHtml);
+                    } else {
+                        var loginHtml = '<div class="loc-review-form" style="text-align:center;font-size:0.85rem;color:var(--color-secondary);"><a href="/Account/Login" style="color:var(--color-black);font-weight:600;">Войдите</a>, чтобы оставить отзыв</div>';
+                        body.insertAdjacentHTML('beforeend', loginHtml);
+                    }
+                })
+                .catch(function() {
+                    var body = document.querySelector('#locSheet .loc-sheet-body');
+                    if (!body) return;
+                    var section = document.createElement('div');
+                    section.className = 'loc-reviews-section';
+                    section.innerHTML = '<div class="loc-reviews-title"><i class="fas fa-comments"></i> Отзывы</div><div class="loc-review-empty">Ошибка загрузки отзывов</div>';
+                    body.appendChild(section);
+                });
         }
 
-        // Close modal on Escape
+        // Review form state
+        var locReviewRating = 0;
+
+        function setLocRating(val) {
+            locReviewRating = val;
+            for (var i = 1; i <= 5; i++) {
+                var el = document.getElementById('loc-star-' + i);
+                if (el) el.className = i <= val ? 'fas fa-star' : 'far fa-star';
+            }
+        }
+        function hoverLocRating(val) {
+            for (var i = 1; i <= 5; i++) {
+                var el = document.getElementById('loc-star-' + i);
+                if (el) el.className = i <= val ? 'fas fa-star' : 'far fa-star';
+            }
+        }
+        function resetLocRating() {
+            setLocRating(locReviewRating);
+        }
+
+        var locReviewPhotos = [];
+
+        function handleLocPhotoSelect(input) {
+            var preview = document.getElementById('locPhotoPreview');
+            preview.innerHTML = '';
+            locReviewPhotos = [];
+            var files = input.files;
+            for (var i = 0; i < Math.min(files.length, 5); i++) {
+                (function(file, idx) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        locReviewPhotos[idx] = e.target.result;
+                        var div = document.createElement('div');
+                        div.className = 'loc-photo-thumb';
+                        div.innerHTML = '<img src="' + e.target.result + '" /><button type="button" class="loc-photo-remove" onclick="removeLocPhoto(' + idx + ')"><i class="fas fa-times"></i></button>';
+                        preview.appendChild(div);
+                    };
+                    reader.readAsDataURL(file);
+                })(files[i], i);
+            }
+        }
+
+        function removeLocPhoto(idx) {
+            locReviewPhotos[idx] = null;
+            var preview = document.getElementById('locPhotoPreview');
+            var thumbs = preview.querySelectorAll('.loc-photo-thumb');
+            if (thumbs[idx]) thumbs[idx].remove();
+        }
+
+        function submitLocReview(locId) {
+            var text = document.getElementById('locReviewText').value.trim();
+            if (locReviewRating === 0) { alert('Выберите оценку'); return; }
+            if (!text) { alert('Напишите текст отзыва'); return; }
+            var validPhotos = locReviewPhotos.filter(function(p) { return p; });
+            if (validPhotos.length === 0) { alert('Добавьте хотя бы одно фото'); return; }
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]');
+            var formData = new FormData();
+            formData.append('locationId', locId);
+            formData.append('rating', locReviewRating);
+            formData.append('text', text);
+            if (token) formData.append('__RequestVerificationToken', token.value);
+
+            // Append photos
+            locReviewPhotos.forEach(function(photo, i) {
+                if (photo) formData.append('PhotoBase64_' + i, photo);
+            });
+
+            fetch('/Review/CreateAjax', {
+                method: 'POST',
+                body: formData
+            }).then(function(r) {
+                if (r.redirected) { window.location.href = r.url; return; }
+                return r.json();
+            }).then(function(data) {
+                if (data && data.success) {
+                    document.getElementById('locReviewText').value = '';
+                    setLocRating(0);
+                    locReviewRating = 0;
+                    locReviewPhotos = [];
+                    var preview = document.getElementById('locPhotoPreview');
+                    if (preview) preview.innerHTML = '';
+                    loadLocReviews(locId);
+                } else {
+                    alert('Ошибка при отправке отзыва.');
+                }
+            }).catch(function() {
+                alert('Не удалось отправить отзыв.');
+            });
+        }
+
+        function shareLocation(locId) {
+            var loc = findLoc(locId);
+            if (!loc) return;
+            var name = loc.name || loc.Name;
+            var lat = loc.latitude || loc.Latitude;
+            var lng = loc.longitude || loc.Longitude;
+            var addr = loc.address || loc.Address || '';
+            var shareText = name + '\n' + addr + '\nКоординаты: ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '\nhttps://www.google.com/maps?q=' + lat + ',' + lng;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(shareText).then(function() {
+                    alert('Скопировано! ✅');
+                }).catch(function() {
+                    prompt('Скопируйте текст:', shareText);
+                });
+            } else {
+                prompt('Скопируйте текст:', shareText);
+            }
+        }
+
+        function closeLocSheet() {
+            document.getElementById('locSheetOverlay').classList.remove('open');
+            document.body.style.overflow = '';
+            currentLocId = null;
+            currentLocData = null;
+            locReviewRating = 0;
+        }
+
+        // Close on Escape
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeModal();
+            if (e.key === 'Escape') closeLocSheet();
         });
 
         // ═══ Popup action buttons ═══
@@ -772,8 +894,9 @@
             var tabContent = document.getElementById('tab-' + tabName);
             if (tabContent) tabContent.classList.add('active');
 
-            // Show sidebar only on Map tab
+            // Show sidebar & toggle button only on Map tab
             var sidebar = document.getElementById('homeSidebar');
+            var toggleBtn = document.getElementById('sidebarToggleBtn');
             if (sidebar) {
                 if (tabName === 'map') {
                     sidebar.classList.remove('hidden-sidebar');
@@ -781,208 +904,16 @@
                     sidebar.classList.add('hidden-sidebar');
                 }
             }
+            if (toggleBtn) {
+                if (tabName === 'map') {
+                    toggleBtn.style.display = '';
+                } else {
+                    toggleBtn.style.display = 'none';
+                }
+            }
 
             if (tabName === 'map') setTimeout(function() { map.invalidateSize(); }, 100);
             if (tabName === 'planner') { renderCalendar(); renderPlannerList(); switchPlannerTab('calendar'); }
-            if (tabName === 'reviews') { loadReviews(); }
-        }
-
-        // ═══ REVIEWS TAB ═══
-        var tabRating = 0;
-        var tabPhotoBase64 = [];
-
-        function setTabRating(value) {
-            tabRating = value;
-            document.getElementById('tabRatingInput').value = value;
-            updateTabStars(value);
-            document.getElementById('tabSubmitReviewBtn').disabled = false;
-        }
-        function hoverTabRating(value) { updateTabStars(value); }
-        function resetTabHover() { updateTabStars(tabRating); }
-        function updateTabStars(value) {
-            for (var i = 1; i <= 5; i++) {
-                var star = document.getElementById('tab-star-' + i);
-                if (i <= value) { star.classList.remove('far'); star.classList.add('fas'); star.style.color = '#FFC107'; }
-                else { star.classList.remove('fas'); star.classList.add('far'); star.style.color = '#CCC'; }
-            }
-        }
-
-        function previewTabPhotos(input) {
-            tabPhotoBase64 = [];
-            var preview = document.getElementById('tabPhotoPreview');
-            preview.innerHTML = '';
-            var files = input.files;
-            for (var i = 0; i < Math.min(files.length, 5); i++) {
-                (function(file) {
-                    var reader = new FileReader();
-                    reader.onload = function(e) {
-                        tabPhotoBase64.push(e.target.result);
-                        var div = document.createElement('div');
-                        div.className = 'position-relative';
-                        div.innerHTML = '<img src="' + e.target.result + '" class="rounded" style="width:60px;height:60px;object-fit:cover;" />';
-                        preview.appendChild(div);
-                    };
-                    reader.readAsDataURL(file);
-                })(files[i]);
-            }
-        }
-
-        function submitReviewTab(e) {
-            e.preventDefault();
-            var locId = parseInt(document.getElementById('reviewLocationSelect').value);
-            var rating = parseInt(document.getElementById('tabRatingInput').value);
-            var text = document.getElementById('tabReviewText').value.trim();
-            if (!locId) { alert('Выберите заведение'); return; }
-            if (rating === 0) { alert('Выберите оценку'); return; }
-            if (!text) { alert('Напишите текст отзыва'); return; }
-
-            var formData = new FormData();
-            formData.append('LocationId', locId);
-            formData.append('Rating', rating);
-            formData.append('Text', text);
-            // Append photos as base64 (imitation)
-            tabPhotoBase64.forEach(function(b64, i) {
-                formData.append('PhotoBase64_' + i, b64);
-            });
-
-            fetch('/Review/Create', {
-                method: 'POST',
-                body: formData
-            }).then(function(r) {
-                if (r.redirected) { window.location.href = r.url; return; }
-                return r.json();
-            }).then(function(data) {
-                if (data && data.success) {
-                    alert('Отзыв отправлен на модерацию! ✅');
-                    document.getElementById('reviewFormTab').reset();
-                    tabPhotoBase64 = [];
-                    document.getElementById('tabPhotoPreview').innerHTML = '';
-                    setTabRating(0);
-                    loadReviews();
-                }
-            }).catch(function() {
-                alert('Отзыв отправлен! Он появится после модерации.');
-                loadReviews();
-            });
-        }
-
-        var allReviews = [];
-
-        function loadReviews() {
-            fetch('/Review/GetReviews')
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    allReviews = data || [];
-                    renderReviewsFeed(allReviews, 'reviewsFeed');
-                })
-                .catch(function() {
-                    document.getElementById('reviewsFeed').innerHTML =
-                        '<div class="text-center py-5 text-muted"><i class="fas fa-exclamation-circle fa-2x mb-2"></i><p>Не удалось загрузить отзывы</p></div>';
-                });
-        }
-
-        function filterReviews() {
-            var query = document.getElementById('reviewSearchInput').value.toLowerCase().trim();
-            if (!query) { renderReviewsFeed(allReviews, 'reviewsFeed'); return; }
-            var filtered = allReviews.filter(function(r) {
-                return (r.locationName || '').toLowerCase().includes(query);
-            });
-            renderReviewsFeed(filtered, 'reviewsFeed');
-        }
-
-        function renderReviewsFeed(reviews, containerId) {
-            var container = document.getElementById(containerId);
-            if (!reviews || reviews.length === 0) {
-                container.innerHTML = '<div class="text-center py-5 text-muted"><i class="fas fa-inbox fa-2x mb-2"></i><p class="mb-0">Отзывов пока нет</p></div>';
-                return;
-            }
-            var html = '';
-            reviews.forEach(function(r) {
-                var stars = '';
-                for (var i = 1; i <= 5; i++) {
-                    stars += '<i class="fa-star ' + (i <= r.rating ? 'fas' : 'far') + '" style="color:#FFC107;font-size:0.8rem;"></i>';
-                }
-                var date = new Date(r.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
-                var isMyReview = isAuthenticated && r.userId === @Context.Session.GetInt32("UserId").GetValueOrDefault(0);
-
-                // User avatar
-                var avatarHtml = r.userAvatar
-                    ? '<img src="' + r.userAvatar + '" class="review-avatar-img" alt="" />'
-                    : '<div class="review-avatar">' + (r.userName || '?').substring(0, 1).toUpperCase() + '</div>';
-
-                // Photos
-                var photosHtml = '';
-                if (r.photoPaths && r.photoPaths.length > 0) {
-                    photosHtml = '<div class="review-photos">';
-                    r.photoPaths.forEach(function(p) {
-                        if (p) photosHtml += '<img src="' + p + '" class="review-photo" alt="" onerror="this.style.display=\'none\'" />';
-                    });
-                    photosHtml += '</div>';
-                }
-
-                // Owner response
-                var responseHtml = '';
-                if (r.ownerResponse) {
-                    responseHtml = '<div class="review-response"><i class="fas fa-reply"></i> <strong>Ответ заведения:</strong> ' + r.ownerResponse + '</div>';
-                }
-
-                // Edit/delete buttons for own reviews
-                var actionsHtml = '';
-                if (isMyReview) {
-                    actionsHtml = '<div class="review-actions">' +
-                        '<button type="button" class="btn btn-sm btn-outline-dark" onclick="editReview(' + r.id + ', ' + r.rating + ', ' + JSON.stringify(r.text) + ')" title="Редактировать"><i class="fas fa-edit"></i></button>' +
-                        '<button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteReview(' + r.id + ')" title="Удалить"><i class="fas fa-trash"></i></button>' +
-                    '</div>';
-                }
-
-                html += '<div class="review-item" id="review-' + r.id + '">' +
-                    '<div class="review-header">' +
-                        avatarHtml +
-                        '<div class="review-meta">' +
-                            '<div class="review-user-name">' + (r.userName || 'Аноним') + '</div>' +
-                            '<div class="review-location"><i class="fas fa-map-marker-alt"></i> ' + (r.locationName || '') + '</div>' +
-                        '</div>' +
-                        '<div class="review-right">' +
-                            '<div class="review-stars">' + stars + '</div>' +
-                            '<div class="review-date">' + date + '</div>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="review-text">' + (r.text || '') + '</div>' +
-                    photosHtml +
-                    responseHtml +
-                    actionsHtml +
-                '</div>';
-            });
-            container.innerHTML = html;
-        }
-
-        function editReview(id, currentRating, currentText) {
-            var newText = prompt('Редактировать отзыв:', currentText);
-            if (newText === null) return;
-            if (!newText.trim()) { alert('Текст не может быть пустым'); return; }
-            var newRatingStr = prompt('Оценка (1-5):', currentRating);
-            if (newRatingStr === null) return;
-            var newRating = parseInt(newRatingStr);
-            if (isNaN(newRating) || newRating < 1 || newRating > 5) { alert('Оценка от 1 до 5'); return; }
-
-            var token = document.querySelector('input[name="__RequestVerificationToken"]');
-            var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-            fetch('/Review/UpdateReview?id=' + id + '&rating=' + newRating + '&text=' + encodeURIComponent(newText), {
-                method: 'PUT',
-                headers: headers
-            }).then(function(r) {
-                if (r.ok) { alert('Отзыв обновлён! ✅'); loadReviews(); }
-                else alert('Ошибка при обновлении');
-            }).catch(function() { alert('Ошибка соединения'); });
-        }
-
-        function deleteReview(id) {
-            if (!confirm('Удалить этот отзыв?')) return;
-            fetch('/Review/DeleteReview?id=' + id, { method: 'DELETE' })
-                .then(function(r) {
-                    if (r.ok) { alert('Отзыв удалён'); loadReviews(); }
-                    else alert('Ошибка при удалении');
-                }).catch(function() { alert('Ошибка соединения'); });
         }
 
         // ═══ Filters ═══
@@ -1103,6 +1034,18 @@
 
         function addToPlannerFromMap(id, name) {
             if (!requireAuth('Добавить в планер')) return;
+            var date = prompt('Введите дату (ГГГГ-ММ-ДД):', new Date().toISOString().split('T')[0]);
+            if (!date) return;
+            var time = prompt('Введите время:', '12:00');
+            if (!time) return;
+            if (addToPlanner(id, name, date, time)) {
+                alert('✅ "' + name + '" добавлено в планер на ' + formatDateRu(date) + ' ' + time);
+            }
+        }
+
+        function addToPlannerFromSheet(id, name) {
+            if (!requireAuth('Добавить в планер')) return;
+            closeLocSheet();
             var date = prompt('Введите дату (ГГГГ-ММ-ДД):', new Date().toISOString().split('T')[0]);
             if (!date) return;
             var time = prompt('Введите время:', '12:00');
@@ -1411,11 +1354,41 @@
                         html += '<small class="text-muted">' + (rt.description || '') + '</small>';
                         html += '<div class="profile-route-meta"><span><i class="fas fa-map-pin"></i> ' + (rt.pointCount || 0) + ' точек</span>';
                         html += '<span><i class="fas fa-calendar"></i> ' + date + '</span></div></div>';
-                        html += '<div class="profile-route-actions"><button type="button" class="btn btn-sm btn-outline-dark" onclick="openRouteModal(' + rt.id + ')"><i class="fas fa-eye"></i></button></div></div>';
+                        var favIcon = rt.isFavorite ? 'fas' : 'far';
+                        var favColor = rt.isFavorite ? '#FFC107' : '';
+                        html += '<div class="profile-route-actions">';
+                        html += '<button type="button" class="btn btn-sm" style="border:none;padding:4px 8px;" onclick="toggleRouteFavorite(' + rt.id + ', this)" title="Избранное"><i class="' + favIcon + ' fa-star" style="color:' + favColor + '"></i></button>';
+                        html += '<button type="button" class="btn btn-sm btn-outline-dark" onclick="openRouteModal(' + rt.id + ')"><i class="fas fa-eye"></i></button>';
+                        html += '</div></div>';
                     });
                     container.innerHTML = html;
                 })
                 .catch(function() { document.getElementById('myRoutesFeed').innerHTML = '<div class="text-center py-4 text-muted"><p>Ошибка загрузки</p></div>'; });
+        }
+
+        function toggleRouteFavorite(routeId, btn) {
+            var token = document.querySelector('input[name="__RequestVerificationToken"]');
+            var body = 'routeId=' + routeId;
+            if (token) body += '&__RequestVerificationToken=' + encodeURIComponent(token.value);
+            fetch('/Route/ToggleFavorite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body
+            }).then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.success) {
+                    var icon = btn.querySelector('i');
+                    if (data.isFavorite) {
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                        icon.style.color = '#FFC107';
+                    } else {
+                        icon.classList.remove('fas');
+                        icon.classList.add('far');
+                        icon.style.color = '';
+                    }
+                }
+            }).catch(function() { alert('Ошибка'); });
         }
 
         function loadPublicRoutes() {
@@ -1492,10 +1465,15 @@
             var locationIds = sorted.map(function(p) { return p.locId; });
             var routeName = prompt('Название маршрута:', 'Мой маршрут');
             if (!routeName) return;
-            var body = 'name=' + encodeURIComponent(routeName) + '&isPublic=false';
+            var token = document.querySelector('input[name="__RequestVerificationToken"]');
+            var body = 'name=' + encodeURIComponent(routeName) + '&description=&isPublic=false';
             locationIds.forEach(function(id) { body += '&locationIds=' + id; });
+            if (token) body += '&__RequestVerificationToken=' + encodeURIComponent(token.value);
             fetch('/Route/CreateAjax', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
-                .then(function(r) { return r.json(); })
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
                 .then(function(data) {
                     if (data && data.id) {
                         alert('✅ Маршрут "' + data.name + '" создан!');
@@ -1507,7 +1485,7 @@
                         alert('Ошибка при создании маршрута');
                     }
                 })
-                .catch(function() { alert('Ошибка соединения'); });
+                .catch(function(e) { alert('Ошибка: ' + e.message); });
         }
 
         // Event listeners

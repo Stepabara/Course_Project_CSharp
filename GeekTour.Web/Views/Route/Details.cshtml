@@ -15,14 +15,14 @@
                     <h3 class="fw-bold mb-1"><i class="fas fa-route"></i> @Model.Name</h3>
                     <p class="text-muted mb-0">@Model.Description</p>
                 </div>
-                @if (Model.IsPublic)
-                {
-                    <span class="badge bg-dark"><i class="fas fa-globe me-1"></i>Публичный</span>
-                }
-                else
-                {
-                    <span class="badge bg-secondary"><i class="fas fa-lock me-1"></i>Приватный</span>
-                }
+                <label class="d-inline-flex align-items-center gap-2" style="cursor:pointer;">
+                    <input type="checkbox" id="isPublicChk" @(Model.IsPublic ? "checked" : "") onchange="togglePublic(@Model.Id)" style="width:18px;height:18px;cursor:pointer;" />
+                    <span id="isPublicLabel" class="badge @(Model.IsPublic ? "bg-dark" : "bg-secondary")">
+                        <i class="fas @(Model.IsPublic ? "fa-globe" : "fa-lock") me-1"></i>
+                        <span id="isPublicText">@(Model.IsPublic ? "Публичный" : "Приватный")</span>
+                    </span>
+                </label>
+                <button type="button" class="btn btn-sm btn-outline-dark" onclick="shareDetailRoute()"><i class="fas fa-share-alt"></i> Поделиться</button>
             </div>
 
             <div class="row g-3 mb-3">
@@ -52,24 +52,6 @@
                 </div>
             </div>
 
-            <!-- Share section -->
-            @if (Model.IsPublic && !string.IsNullOrEmpty(Model.ShareLink))
-            {
-                <div class="mt-3 p-3" style="background: #F5F5F5; border-radius: 12px;">
-                    <strong><i class="fas fa-share-alt me-1"></i>Поделиться маршрутом</strong>
-                    <div class="input-group mt-2">
-                        <input type="text" class="form-control" id="shareLink" value="@shareUrl" readonly />
-                        <button class="btn btn-outline-dark" type="button" onclick="copyShareLink()"><i class="fas fa-copy"></i></button>
-                    </div>
-                    <div class="d-flex gap-2 mt-2">
-                        <a href="https://t.me/share/url?url=@Uri.EscapeDataString(shareUrl)&text=@Uri.EscapeDataString(Model.Name)" target="_blank" class="btn btn-sm btn-outline-dark"><i class="fab fa-telegram"></i> Telegram</a>
-                        <a href="https://vk.com/share.php?url=@Uri.EscapeDataString(shareUrl)&title=@Uri.EscapeDataString(Model.Name)" target="_blank" class="btn btn-sm btn-outline-dark"><i class="fab fa-vk"></i> VK</a>
-                        <a href="https://www.facebook.com/sharer/sharer.php?u=@Uri.EscapeDataString(shareUrl)" target="_blank" class="btn btn-sm btn-outline-dark"><i class="fab fa-facebook"></i> Facebook</a>
-                        <a href="https://twitter.com/intent/tweet?url=@Uri.EscapeDataString(shareUrl)&text=@Uri.EscapeDataString(Model.Name)" target="_blank" class="btn btn-sm btn-outline-dark"><i class="fab fa-twitter"></i> Twitter</a>
-                        <a href="mailto:?subject=@Uri.EscapeDataString(Model.Name)&body=@Uri.EscapeDataString(shareUrl)" class="btn btn-sm btn-outline-dark"><i class="fas fa-envelope"></i> Email</a>
-                    </div>
-                </div>
-            }
         </div>
     </div>
 
@@ -146,19 +128,12 @@
 
     <!-- Action buttons -->
     <div class="d-flex gap-2 mb-4 flex-wrap">
-        <a asp-controller="Route" asp-action="Index" class="btn btn-outline-dark"><i class="fas fa-arrow-left me-1"></i>Назад</a>
+        <button type="button" class="btn btn-outline-dark" onclick="goBack()"><i class="fas fa-arrow-left me-1"></i>Назад</button>
         @if (Context.Session.GetInt32("UserId") != null)
         {
             <form asp-controller="Route" asp-action="Optimize" asp-route-routeId="@Model.Id" method="post" class="d-inline">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-outline-dark"><i class="fas fa-magic me-1"></i>Оптимизировать</button>
-            </form>
-        }
-        @if (!Model.IsPublic || string.IsNullOrEmpty(Model.ShareLink))
-        {
-            <form asp-controller="Route" asp-action="Share" asp-route-routeId="@Model.Id" method="post" class="d-inline">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-dark"><i class="fas fa-share-alt me-1"></i>Сделать публичным</button>
             </form>
         }
     </div>
@@ -171,55 +146,93 @@
 @section Scripts {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        function copyShareLink() {
-            var copyText = document.getElementById("shareLink");
-            copyText.select();
-            copyText.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(copyText.value);
-            var btn = copyText.nextElementSibling;
-            btn.innerHTML = '<i class="fas fa-check"></i>';
-            setTimeout(function () { btn.innerHTML = '<i class="fas fa-copy"></i>'; }, 2000);
+        function goBack() {
+            window.history.back();
+        }
+
+        function togglePublic(routeId) {
+            var chk = document.getElementById('isPublicChk');
+            var label = document.getElementById('isPublicLabel');
+            var text = document.getElementById('isPublicText');
+            var icon = label.querySelector('i');
+            var token = document.querySelector('input[name="__RequestVerificationToken"]');
+            var body = 'routeId=' + routeId + '&isPublic=' + chk.checked;
+            if (token) body += '&__RequestVerificationToken=' + encodeURIComponent(token.value);
+            fetch('/Route/SetPublic', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body
+            }).then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.success) {
+                    if (chk.checked) {
+                        label.className = 'badge bg-dark';
+                        icon.className = 'fas fa-globe me-1';
+                        text.textContent = 'Публичный';
+                    } else {
+                        label.className = 'badge bg-secondary';
+                        icon.className = 'fas fa-lock me-1';
+                        text.textContent = 'Приватный';
+                    }
+                } else {
+                    chk.checked = !chk.checked;
+                    alert('Ошибка');
+                }
+            }).catch(function() {
+                chk.checked = !chk.checked;
+                alert('Ошибка');
+            });
         }
 
         // Route map
-        @if (Model.Points.Any())
-        {
-            <text>
-            (function() {
-                var mapEl = document.getElementById('routeMap');
-                if (!mapEl) return;
-                if (typeof L === 'undefined') {
-                    console.error('Leaflet not loaded');
-                    return;
-                }
+        (function() {
+            var mapEl = document.getElementById('routeMap');
+            if (!mapEl) return;
+            if (typeof L === 'undefined') {
+                console.error('Leaflet not loaded');
+                return;
+            }
 
-                var points = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Points.OrderBy(p => p.OrderIndex).Select(p => new { p.Latitude, p.Longitude, p.LocationName })));
+            var points = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Points.OrderBy(p => p.OrderIndex).Select(p => new { p.Latitude, p.Longitude, p.LocationName })));
 
-                if (!points || points.length === 0) return;
+            if (!points || points.length === 0) return;
 
-                var firstPt = points[0];
-                var map = L.map('routeMap').setView([firstPt.Latitude, firstPt.Longitude], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap'
-                }).addTo(map);
+            var firstPt = points[0];
+            var map = L.map('routeMap').setView([firstPt.Latitude, firstPt.Longitude], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
 
-                var latlngs = [];
-                points.forEach(function(pt, i) {
-                    var ll = [pt.Latitude, pt.Longitude];
-                    latlngs.push(ll);
-                    L.marker(ll).addTo(map)
-                        .bindPopup('<b>#' + (i+1) + '</b><br>' + pt.LocationName);
+            var latlngs = [];
+            points.forEach(function(pt, i) {
+                var ll = [pt.Latitude, pt.Longitude];
+                latlngs.push(ll);
+                L.marker(ll).addTo(map)
+                    .bindPopup('<b>#' + (i+1) + '</b><br>' + pt.LocationName);
+            });
+
+            if (latlngs.length > 1) {
+                L.polyline(latlngs, { color: '#000', weight: 3, opacity: 0.8 }).addTo(map);
+                map.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30] });
+            }
+
+            setTimeout(function() { map.invalidateSize(); }, 200);
+        })();
+
+        // ═══ Share route with coordinates ═══
+        var routePoints = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Points.OrderBy(p => p.OrderIndex).Select(p => new { p.Latitude, p.Longitude })));
+
+        function shareDetailRoute() {
+            if (!routePoints || routePoints.length === 0) { alert('Нет точек маршрута'); return; }
+            var coords = routePoints.map(function(p) { return p.Latitude + ',' + p.Longitude; }).join('~');
+            var yandexUrl = 'https://yandex.ru/maps/?rtext=' + coords + '&rtt=auto';
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(yandexUrl).then(function() {
+                    alert('Ссылка скопирована! ✅');
                 });
-
-                if (latlngs.length > 1) {
-                    L.polyline(latlngs, { color: '#000', weight: 3, opacity: 0.8 }).addTo(map);
-                    map.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30] });
-                }
-
-                // Force map to recalculate size after render
-                setTimeout(function() { map.invalidateSize(); }, 100);
-            })();
-            </text>
+            } else {
+                prompt('Скопируйте ссылку:', yandexUrl);
+            }
         }
     </script>
 }

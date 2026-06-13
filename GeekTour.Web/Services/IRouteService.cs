@@ -12,6 +12,7 @@ public interface IRouteService
     Task<RouteDetailViewModel?> OptimizeAsync(int routeId, int userId);
     Task<TourRoute?> OptimizeNewRoute(List<int> locationIds, int userId);
     Task<bool> SetPublicAsync(int routeId, int userId, bool isPublic);
+    Task<bool> ToggleFavoriteAsync(int routeId, int userId);
     Task<string?> GenerateShareLinkAsync(int routeId, int userId);
     Task<RouteDetailViewModel?> GetByShareLinkAsync(string shareLink);
 }

@@ -25,6 +25,24 @@ public class FileStorageService : IFileStorageService
         return $"/uploads/{folder}/{fileName}";
     }
 
+    public async Task<string?> SaveBase64ImageAsync(string base64Data, string folder)
+    {
+        if (string.IsNullOrEmpty(base64Data)) return null;
+        try
+        {
+            var commaIdx = base64Data.IndexOf(',');
+            if (commaIdx >= 0) base64Data = base64Data.Substring(commaIdx + 1);
+            var bytes = Convert.FromBase64String(base64Data);
+            var uploadsDir = Path.Combine(_env.WebRootPath, "uploads", folder);
+            Directory.CreateDirectory(uploadsDir);
+            var fileName = $"{Guid.NewGuid():N}.jpg";
+            var filePath = Path.Combine(uploadsDir, fileName);
+            await File.WriteAllBytesAsync(filePath, bytes);
+            return $"/uploads/{folder}/{fileName}";
+        }
+        catch { return null; }
+    }
+
     public Task<bool> DeleteFileAsync(string path)
     {
         var fullPath = Path.Combine(_env.WebRootPath, path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));

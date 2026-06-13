@@ -18,27 +18,57 @@
             <a class="header-logo" href="/Home/Index">
                 <i class="fas fa-gamepad"></i> GeekTour
             </a>
+            <div class="header-tabs">
+                <button type="button" class="home-tab active" data-tab="map" onclick="switchTab('map')">
+                    <i class="fas fa-map-marked-alt"></i> Карта
+                </button>
+                <button type="button" class="home-tab" data-tab="planner" onclick="switchTab('planner')">
+                    <i class="fas fa-calendar-alt"></i> Планировщик
+                </button>
+            </div>
             <div class="header-actions">
                 @if (Context.Session.GetInt32("UserId") != null)
                 {
-                    <button type="button" class="header-user-btn" id="headerProfileBtn">
-                        <div class="header-user-avatar">
-                            @Context.Session.GetString("UserName")?.Substring(0, 1).ToUpper()
+                    <div class="header-user-dropdown" id="headerUserDropdown">
+                        <button type="button" class="header-user-btn" id="headerUserMenuBtn">
+                            <div class="header-user-avatar">
+                                @Context.Session.GetString("UserName")?.Substring(0, 1).ToUpper()
+                            </div>
+                            <span class="header-user-name">@Context.Session.GetString("UserName")</span>
+                            <i class="fas fa-chevron-down" id="headerDropdownArrow"></i>
+                        </button>
+                        <div class="header-dropdown-menu" id="headerDropdownMenu">
+                            <button type="button" class="header-dropdown-item" onclick="openProfileModal()">
+                                <i class="fas fa-user-edit"></i> Редактировать профиль
+                            </button>
+                            <button type="button" class="header-dropdown-item" onclick="openFavoritesModal()">
+                                <i class="fas fa-star"></i> Избранное
+                            </button>
+                            <div class="header-dropdown-divider"></div>
+                            <a class="header-dropdown-item" asp-controller="Account" asp-action="Logout">
+                                <i class="fas fa-sign-out-alt"></i> Выйти
+                            </a>
                         </div>
-                        <span class="header-user-name">@Context.Session.GetString("UserName")</span>
-                    </button>
-                    <a class="btn btn-outline-dark btn-sm header-logout" asp-controller="Account" asp-action="Logout">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </a>
+                    </div>
                 }
             </div>
         </div>
     </header>
 
-    <div class="modal-overlay" id="profileModal">
+    <div class="modal-overlay modal-overlay-center" id="profileModal">
         <div class="modal-sheet" style="max-width:480px;">
             <button type="button" class="modal-close" id="profileModalClose"><i class="fas fa-times"></i></button>
             <div id="profileModalContent">
+                <div class="text-center py-4"><div class="spinner-border text-dark"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Favorites Modal ═══ -->
+    <div class="modal-overlay modal-overlay-center" id="favoritesModal">
+        <div class="modal-sheet" style="max-width:560px;">
+            <button type="button" class="modal-close" onclick="closeFavoritesModal()"><i class="fas fa-times"></i></button>
+            <div id="favoritesModalContent">
                 <div class="text-center py-4"><div class="spinner-border text-dark"></div></div>
             </div>
         </div>
@@ -63,7 +93,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js" asp-append-version="true"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="~/js/profile-modal.js"></script>
+    <script src="~/js/profile-modal.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

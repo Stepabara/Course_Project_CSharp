@@ -17,6 +17,13 @@ public static class DbInitializer
         }
         catch { /* ignore if column already exists */ }
 
+        // Add IsFavorite column to Routes if it doesn't exist
+        try
+        {
+            context.Database.ExecuteSqlRaw("ALTER TABLE Routes ADD COLUMN IsFavorite INTEGER DEFAULT 0");
+        }
+        catch { /* ignore if column already exists */ }
+
         if (context.Users.Any()) return; // Already seeded
 
         // ===================== CATEGORIES =====================

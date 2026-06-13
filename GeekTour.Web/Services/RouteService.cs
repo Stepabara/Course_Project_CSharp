@@ -32,6 +32,7 @@ public class RouteService : IRouteService
                 EstimatedTimeMinutes = r.EstimatedTimeMinutes,
                 PointCount = r.Points.Count,
                 IsPublic = r.IsPublic,
+                IsFavorite = r.IsFavorite,
                 ShareLink = r.ShareLink
             }).ToListAsync();
     }
@@ -262,5 +263,14 @@ public class RouteService : IRouteService
                 TravelTimeFromPreviousMinutes = rp.TravelTimeFromPreviousMinutes
             }).ToList()
         };
+    }
+
+    public async Task<bool> ToggleFavoriteAsync(int routeId, int userId)
+    {
+        var route = await _context.Routes.FirstOrDefaultAsync(r => r.Id == routeId && r.UserId == userId);
+        if (route == null) return false;
+        route.IsFavorite = !route.IsFavorite;
+        await _context.SaveChangesAsync();
+        return route.IsFavorite;
     }
 }
