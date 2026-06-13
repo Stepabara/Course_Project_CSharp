@@ -1,0 +1,391 @@
+@model List<GeekTour.Web.Models.ViewModels.LocationListViewModel>
+@using GeekTour.Web.Models.Entities
+@using GeekTour.Web.Models.Enums
+@{
+    Layout = null;
+    ViewData["Title"] = "Гостивая страница";
+    var allFandoms = ViewBag.Fandoms as List<Fandom> ?? new List<Fandom>();
+    var allCategories = ViewBag.Categories as List<Category> ?? new List<Category>();
+}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — GeekTour</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+@Html.Raw("<body>")
+<!-- ═══ Header для гостей ═══ -->
+<header class="site-header">
+    <div class="header-inner">
+        <a class="header-logo" href="/Guest/Index">
+            <i class="fas fa-gamepad"></i> GeekTour
+        </a>
+        <div class="header-actions">
+            <a href="/Account/Login" class="btn btn-outline-dark btn-sm"><i class="fas fa-sign-in-alt"></i> Войти</a>
+            <a href="/Account/Register" class="btn btn-dark btn-sm"><i class="fas fa-user-plus"></i> Регистрация</a>
+        </div>
+    </div>
+</header>
+
+<!-- ═══ Guest Page ═══ -->
+<div class="home-layout">
+    <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Скрыть/показать фильтры">
+        <i class="fas fa-chevron-left" id="sidebarToggleIcon"></i>
+    </button>
+
+    <!-- ═══ Sidebar: Filters ═══ -->
+    <aside class="home-sidebar" id="homeSidebar" style="left:0;">
+        <div class="home-sidebar-header">
+            <h5><i class="fas fa-filter"></i> Фильтры</h5>
+            <button type="button" class="btn btn-sm btn-outline-dark" id="sidebarResetBtn" onclick="resetAllFilters()" style="display:none;">
+                <i class="fas fa-times"></i> Сбросить
+            </button>
+        </div>
+        <div class="home-filters-scroll">
+            <div class="home-filter-group">
+                <label class="form-label">Поиск</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Название, адрес..." />
+                </div>
+            </div>
+            <div class="home-filter-group">
+                <label class="form-label">Тип</label>
+                <select id="typeFilter" class="form-select">
+                    <option value="" selected>Все типы</option>
+                    @foreach (var t in Enum.GetValues<LocationType>())
+                    {
+                        <option value="@((int)t)">@t.ToString()</option>
+                    }
+                </select>
+            </div>
+            <div class="home-filter-group">
+                <label class="form-label">Фандом</label>
+                <div class="fandom-checkboxes">
+                    @foreach (var fandom in allFandoms)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input fandom-checkbox" type="checkbox" value="@fandom.Id"
+                                   id="fandom_@fandom.Id" onchange="applyFilters()" />
+                            <label class="form-check-label" for="fandom_@fandom.Id">
+                                @fandom.Name
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="home-filter-group">
+                <label class="form-label">Категория</label>
+                <select id="categoryFilter" class="form-select">
+                    <option value="" selected>Все категории</option>
+                    @foreach (var cat in allCategories)
+                    {
+                        <option value="@cat.Id">@cat.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="home-filter-group">
+                <label class="form-label">Мин. рейтинг</label>
+                <select id="ratingFilter" class="form-select">
+                    <option value="" selected>Любой</option>
+                    <option value="4">4+</option>
+                    <option value="4.5">4.5+</option>
+                </select>
+            </div>
+            <div class="home-filter-group">
+                <label class="form-label">Сортировка</label>
+                <select id="sortFilter" class="form-select">
+                    <option value="rating">По рейтингу</option>
+                    <option value="name">По названию</option>
+                    <option value="newest">Новые</option>
+                </select>
+            </div>
+        </div>
+        <div class="home-sidebar-footer">
+            <button type="button" class="btn btn-dark w-100" onclick="applyFilters()">
+                <i class="fas fa-search"></i> Применить
+            </button>
+        </div>
+    </aside>
+
+    <!-- ═══ Map ═══ -->
+    <div class="home-content">
+        <div class="home-map">
+            <div id="map"></div>
+            <div class="home-map-counter">
+                <span class="badge bg-dark" id="locCount">@Model.Count</span> заведений
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Location Modal ═══ -->
+<div class="loc-sheet-overlay" id="locSheetOverlay" onclick="if(event.target===this)closeLocSheet()">
+    <div class="loc-sheet" id="locSheet">
+        <div id="locSheetContent"></div>
+    </div>
+</div>
+
+<!-- ═══ Auth Prompt Modal ═══ -->
+<div class="modal-overlay" id="authPromptModal">
+    <div class="modal-sheet" style="max-width:420px;">
+        <button type="button" class="modal-close" onclick="closeAuthPrompt()"><i class="fas fa-times"></i></button>
+        <div id="authPromptContent"></div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // ═══ Map ═══
+        var map = L.map('map').setView([53.9045, 27.5615], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        var markers = [];
+        var markerMap = {};
+        var allLocations = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(l => new { l.Id, l.Name, l.Description, l.Address, l.Latitude, l.Longitude, l.AverageRating, l.Type, l.FandomNames, l.WorkingHoursJson, l.MainImagePath })));
+
+        // ═══ Marker colors ═══
+        function getMarkerColor(type) {
+            switch(type) {
+                case 0: return '#E91E63';
+                case 1: return '#2196F3';
+                case 2: return '#FF9800';
+                case 3: return '#4CAF50';
+                default: return '#9C27B0';
+            }
+        }
+
+        function createColoredIcon(type) {
+            var color = getMarkerColor(type);
+            return L.divIcon({
+                className: 'custom-marker',
+                html: '<div style="background:' + color + ';width:28px;height:28px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+                iconSize: [28, 28],
+                iconAnchor: [14, 28],
+                popupAnchor: [0, -16]
+            });
+        }
+
+        // ═══ Build popup ═══
+        function buildPopup(loc) {
+            var starsHtml = '';
+            for (var i = 1; i <= 5; i++) {
+                starsHtml += '<i class="fa-star ' + (i <= Math.round(loc.AverageRating) ? 'fas' : 'far') + '" style="color:#FFC107;font-size:0.8rem;"></i>';
+            }
+            var fandomsHtml = loc.FandomNames && loc.FandomNames.length > 0
+                ? '<div style="margin:4px 0;">' + loc.FandomNames.map(function(f) {
+                    return '<span class="badge bg-secondary me-1" style="font-size:0.7rem;">' + f + '</span>';
+                }).join('') + '</div>'
+                : '';
+            var imgHtml = loc.MainImagePath
+                ? '<div style="margin-bottom:8px;"><img src="' + loc.MainImagePath + '" style="width:100%;height:80px;object-fit:cover;border-radius:6px;" alt="" /></div>'
+                : '';
+            var desc = (loc.Description || '').substring(0, 80);
+            return '<div class="map-popup" style="min-width:200px;">' +
+                imgHtml +
+                '<b style="font-size:0.95rem;">' + (loc.Type === 0 ? '🍽️' : loc.Type === 1 ? '🛒' : loc.Type === 2 ? '🎨' : '📚') + ' ' + loc.Name + '</b><br>' +
+                '<div style="margin:2px 0;">' + starsHtml + ' <span style="font-size:0.8rem;color:#666;">' + loc.AverageRating.toFixed(1) + '</span></div>' +
+                fandomsHtml +
+                '<div style="font-size:0.78rem;color:#666;margin:4px 0;">📍 ' + loc.Address + '</div>' +
+                '<div style="margin-top:8px;">' +
+                    '<button type="button" class="btn btn-sm btn-dark" onclick="openLocationModal(' + loc.Id + ')"><i class="fas fa-info"></i> Подробнее</button>' +
+                    '<button type="button" class="btn btn-sm btn-outline-dark ms-1" onclick="requireAuth()"><i class="fas fa-pen"></i> Отзыв</button>' +
+                '</div></div>';
+        }
+
+        // ═══ Add markers ═══
+        function addMarkers(locations) {
+            clearMarkers();
+            var bounds = L.latLngBounds();
+            locations.forEach(function(loc) {
+                if (!loc.Latitude || !loc.Longitude) return;
+                var marker = L.marker([loc.Latitude, loc.Longitude], { icon: createColoredIcon(loc.Type) })
+                    .addTo(map)
+                    .bindPopup(buildPopup(loc));
+                markers.push(marker);
+                markerMap[loc.Id] = marker;
+                bounds.extend([loc.Latitude, loc.Longitude]);
+            });
+            if (markers.length > 0) map.fitBounds(bounds, { padding: [40, 40] });
+            return markers.length;
+        }
+
+        function clearMarkers() {
+            markers.forEach(function(m) { map.removeLayer(m); });
+            markers = [];
+            markerMap = {};
+        }
+
+        function focusLocation(id) {
+            var marker = markerMap[id];
+            if (marker) { map.setView(marker.getLatLng(), 15); marker.openPopup(); }
+        }
+
+        addMarkers(allLocations);
+        document.getElementById('locCount').textContent = allLocations.length;
+
+        // ═══ Filters ═══
+        function applyFilters() {
+            var search = document.getElementById('searchInput').value.toLowerCase();
+            var type = document.getElementById('typeFilter').value;
+            var category = document.getElementById('categoryFilter').value;
+            var minRating = document.getElementById('ratingFilter').value;
+            var sortBy = document.getElementById('sortFilter').value;
+            var selectedFandoms = Array.from(document.querySelectorAll('.fandom-checkbox:checked')).map(function(cb) { return parseInt(cb.value); });
+
+            var filtered = allLocations.filter(function(loc) {
+                if (search && !loc.Name.toLowerCase().includes(search) && !loc.Address.toLowerCase().includes(search)) return false;
+                if (type && loc.Type !== parseInt(type)) return false;
+                if (minRating && loc.AverageRating < parseFloat(minRating)) return false;
+                if (selectedFandoms.length > 0 && !loc.FandomNames.some(function(f) { return selectedFandoms.includes(f); })) return false;
+                return true;
+            });
+
+            if (sortBy === 'rating') filtered.sort(function(a, b) { return b.AverageRating - a.AverageRating; });
+            else if (sortBy === 'name') filtered.sort(function(a, b) { return a.Name.localeCompare(b.Name); });
+
+            addMarkers(filtered);
+            document.getElementById('locCount').textContent = filtered.length;
+        }
+
+        function resetAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('typeFilter').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('ratingFilter').value = '';
+            document.getElementById('sortFilter').value = 'rating';
+            document.querySelectorAll('.fandom-checkbox').forEach(function(cb) { cb.checked = false; });
+            addMarkers(allLocations);
+            document.getElementById('locCount').textContent = allLocations.length;
+        }
+
+        // ═══ Sidebar toggle ═══
+        var sidebarCollapsed = false;
+        function toggleSidebar() {
+            var sidebar = document.getElementById('homeSidebar');
+            var toggleBtn = document.getElementById('sidebarToggleBtn');
+            var icon = document.getElementById('sidebarToggleIcon');
+            sidebarCollapsed = !sidebarCollapsed;
+            if (sidebarCollapsed) {
+                sidebar.classList.add('sidebar-collapsed');
+                toggleBtn.classList.add('collapsed');
+                if (icon) icon.classList.replace('fa-chevron-left', 'fa-chevron-right');
+            } else {
+                sidebar.classList.remove('sidebar-collapsed');
+                toggleBtn.classList.remove('collapsed');
+                if (icon) icon.classList.replace('fa-chevron-right', 'fa-chevron-left');
+            }
+        }
+
+        // ═══ Location Modal ═══
+        var currentLocData = null;
+
+        function openLocationModal(id) {
+            var loc = allLocations.find(function(l) { return l.Id === id; });
+            if (!loc) return;
+            currentLocData = loc;
+
+            var name = loc.Name;
+            var type = loc.Type;
+            var rating = loc.AverageRating;
+            var desc = loc.Description || '';
+            var addr = loc.Address || '';
+            var fandoms = loc.FandomNames || [];
+            var img = loc.MainImagePath;
+            var wh = loc.WorkingHoursJson || '{}';
+
+            var starsHtml = '';
+            for (var i = 1; i <= 5; i++) {
+                starsHtml += '<i class="fa-star ' + (i <= Math.round(rating) ? 'fas' : 'far') + '" style="color:#FFC107;"></i>';
+            }
+
+            var fandomsHtml = fandoms.length > 0
+                ? '<div class="loc-fandoms">' + fandoms.map(function(f) {
+                    return '<span class="badge bg-secondary">' + f + '</span>';
+                }).join('') + '</div>'
+                : '';
+
+            var whHtml = '';
+            try {
+                var h = JSON.parse(wh);
+                var days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+                var names = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+                whHtml = '<table class="loc-wh-table"><tbody>';
+                for (var i = 0; i < 7; i++) {
+                    var v = h[days[i]] || '—';
+                    if (v === 'closed') v = 'Закрыто';
+                    whHtml += '<tr><td>' + names[i] + '</td><td>' + v + '</td></tr>';
+                }
+                whHtml += '</tbody></table>';
+            } catch(e) { whHtml = '<p class="text-muted" style="font-size:0.85rem;">Не указано</p>'; }
+
+            var imgHtml = img
+                ? '<div class="loc-hero-img" style="background-image:url(\'' + img + '\');"></div>'
+                : '<div class="loc-hero-img loc-hero-placeholder"><span>' + (type === 0 ? '🍽️' : type === 1 ? '🛒' : type === 2 ? '🎨' : '📚') + '</span></div>';
+
+            var typeNames = ['Кафе', 'Магазин', 'Арт-объект', 'Книжный', 'Антикафе'];
+            var typeEmojis = ['🍽️', '🛒', '🎨', '📚', '🎮'];
+
+            var html =
+                '<div class="loc-sheet-header">' +
+                    '<span class="loc-name">' + name + '</span>' +
+                    '<button type="button" class="loc-close-btn" onclick="closeLocSheet()"><i class="fas fa-times"></i></button>' +
+                '</div>' +
+                '<div class="loc-sheet-body">' +
+                    imgHtml +
+                    '<div class="loc-type-badge">' + (typeEmojis[type] || '') + ' ' + (typeNames[type] || '') + '</div>' +
+                    '<div class="loc-rating">' + starsHtml + ' <strong>' + rating.toFixed(1) + '</strong></div>' +
+                    fandomsHtml +
+                    (desc ? '<p class="loc-desc">' + desc + '</p>' : '') +
+                    '<div class="loc-info-row"><i class="fas fa-map-marker-alt"></i><span>' + addr + '</span></div>' +
+                    '<div style="font-weight:600;font-size:0.9rem;margin:12px 0 6px;"><i class="fas fa-clock"></i> Часы работы</div>' +
+                    whHtml +
+                    '<div style="margin-top:16px;text-align:center;">' +
+                        '<a href="/Account/Login" class="btn btn-dark"><i class="fas fa-sign-in-alt"></i> Войдите, чтобы оставить отзыв</a>' +
+                    '</div>' +
+                '</div>';
+
+            document.getElementById('locSheetContent').innerHTML = html;
+            document.getElementById('locSheetOverlay').classList.add('open');
+        }
+
+        function closeLocSheet() {
+            document.getElementById('locSheetOverlay').classList.remove('open');
+        }
+
+        // ═══ Auth prompt ═══
+        function requireAuth() {
+            document.getElementById('authPromptContent').innerHTML =
+                '<div class="text-center py-4">' +
+                    '<i class="fas fa-lock fa-3x text-muted mb-3"></i>' +
+                    '<h4>Требуется авторизация</h4>' +
+                    '<p class="text-muted">Войдите в аккаунт, чтобы оставлять отзывы и использовать все возможности</p>' +
+                    '<a href="/Account/Login" class="btn btn-dark btn-lg me-2">Войти</a>' +
+                    '<a href="/Account/Register" class="btn btn-outline-dark btn-lg">Регистрация</a>' +
+                '</div>';
+            document.getElementById('authPromptModal').classList.add('open');
+        }
+
+        function closeAuthPrompt() {
+            document.getElementById('authPromptModal').classList.remove('open');
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { closeLocSheet(); closeAuthPrompt(); }
+        });
+    </script>
+@Html.Raw("</body>")
+@Html.Raw("</html>")

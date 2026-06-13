@@ -17,6 +17,10 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
+        // Redirect guests to guest page
+        if (!AccountController.IsAuthenticated(HttpContext))
+            return RedirectToAction("Index", "Guest");
+
         var filter = new LocationFilterViewModel();
         var locations = await _locationService.GetFilteredAsync(filter);
         var fandoms = await _locationService.GetAllFandomsAsync();
