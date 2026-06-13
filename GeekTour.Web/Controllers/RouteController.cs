@@ -152,4 +152,19 @@ public class RouteController : Controller
             r.IsPublic
         }));
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetPublicRoutes()
+    {
+        var routes = await _routeService.GetPublicRoutesAsync();
+        return Json(routes.Select(r => new
+        {
+            r.Id,
+            r.Name,
+            r.Description,
+            r.CreatedAt,
+            r.PointCount,
+            r.IsPublic
+        }));
+    }
 }

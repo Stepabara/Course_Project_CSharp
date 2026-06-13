@@ -36,6 +36,26 @@ public class RouteService : IRouteService
             }).ToListAsync();
     }
 
+    public async Task<List<RouteListViewModel>> GetPublicRoutesAsync()
+    {
+        return await _context.Routes
+            .Include(r => r.Points)
+            .Where(r => r.IsPublic)
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => new RouteListViewModel
+            {
+                Id = r.Id,
+                Name = r.Name,
+                Description = r.Description,
+                CreatedAt = r.CreatedAt,
+                TotalDistanceKm = r.TotalDistanceKm,
+                EstimatedTimeMinutes = r.EstimatedTimeMinutes,
+                PointCount = r.Points.Count,
+                IsPublic = r.IsPublic,
+                ShareLink = r.ShareLink
+            }).ToListAsync();
+    }
+
     public async Task<RouteDetailViewModel?> GetByIdAsync(int id)
     {
         var route = await _context.Routes

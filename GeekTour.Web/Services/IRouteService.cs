@@ -6,6 +6,7 @@ namespace GeekTour.Web.Services;
 public interface IRouteService
 {
     Task<List<RouteListViewModel>> GetUserRoutesAsync(int userId);
+    Task<List<RouteListViewModel>> GetPublicRoutesAsync();
     Task<RouteDetailViewModel?> GetByIdAsync(int id);
     Task<TourRoute> CreateAsync(RouteCreateViewModel model, int userId);
     Task<RouteDetailViewModel?> OptimizeAsync(int routeId, int userId);
