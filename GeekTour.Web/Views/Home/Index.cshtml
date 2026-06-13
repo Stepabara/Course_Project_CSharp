@@ -238,6 +238,16 @@
             </div>
         </div>
 
+        <!-- ═══ Route Detail Modal ═══ -->
+        <div class="modal-overlay" id="routeModal">
+            <div class="modal-sheet" style="max-width:560px;">
+                <button type="button" class="modal-close" onclick="closeRouteModal()"><i class="fas fa-times"></i></button>
+                <div id="routeModalContent">
+                    <div class="text-center py-4"><div class="spinner-border text-dark"></div></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Tab: Reviews -->
         <div class="home-tab-content" id="tab-reviews">
             <div class="reviews-tab-container">
@@ -467,12 +477,9 @@
                 : '<div style="margin-bottom:8px;background:#f0f0f0;height:60px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#999;font-size:0.75rem;">' + typeEmoji(type) + ' ' + typeName(type) + '</div>';
 
             // Guest: show buttons but they trigger auth prompt
-            var routeBtn = isAuthenticated
-                ? '<button type="button" class="btn btn-sm btn-dark" onclick="addToRoute(' + id + ')"><i class="fas fa-plus"></i> В маршрут</button>'
-                : '<button type="button" class="btn btn-sm btn-dark" onclick="requireAuth(\'Добавить в маршрут\')"><i class="fas fa-plus"></i> В маршрут</button>';
-            var calBtn = isAuthenticated
-                ? '<button type="button" class="btn btn-sm btn-outline-dark" onclick="addToCalendar(' + id + ')"><i class="fas fa-calendar"></i></button>'
-                : '<button type="button" class="btn btn-sm btn-outline-dark" onclick="requireAuth(\'Добавить в календарь\')"><i class="fas fa-calendar"></i></button>';
+            var plannerBtn = isAuthenticated
+                ? '<button type="button" class="btn btn-sm btn-dark" onclick="addToPlannerFromMap(' + id + ',\'' + name.replace(/'/g, "\\'") + '\')"><i class="fas fa-calendar-plus"></i> В планер</button>'
+                : '<button type="button" class="btn btn-sm btn-dark" onclick="requireAuth(\'Добавить в планер\')"><i class="fas fa-calendar-plus"></i> В планер</button>';
             var reviewBtn = isAuthenticated
                 ? '<button type="button" class="btn btn-sm btn-outline-dark" onclick="writeReview(' + id + ')"><i class="fas fa-pen"></i></button>'
                 : '<button type="button" class="btn btn-sm btn-outline-dark" onclick="requireAuth(\'Написать отзыв\')"><i class="fas fa-pen"></i></button>';
@@ -486,7 +493,7 @@
                 '<div style="font-size:0.78rem;color:#666;margin:2px 0;">🕐 Сегодня: ' + todayWh + '</div>' +
                 (desc ? '<div style="font-size:0.78rem;color:#888;margin:4px 0;">' + desc + (desc.length >= 120 ? '...' : '') + '</div>' : '') +
                 '<div style="margin-top:10px;display:flex;gap:4px;flex-wrap:wrap;">' +
-                    routeBtn + calBtn + reviewBtn +
+                    plannerBtn + reviewBtn +
                     '<button type="button" class="btn btn-sm btn-outline-dark" onclick="openLocationModal(' + id + ')" title="Подробнее"><i class="fas fa-info"></i></button>' +
                 '</div></div>';
         }
@@ -776,7 +783,7 @@
             }
 
             if (tabName === 'map') setTimeout(function() { map.invalidateSize(); }, 100);
-            if (tabName === 'planner') { renderCalendar(); renderPlannerList(); }
+            if (tabName === 'planner') { renderCalendar(); renderPlannerList(); switchPlannerTab('calendar'); }
             if (tabName === 'reviews') { loadReviews(); }
         }
 
@@ -1094,8 +1101,18 @@
             document.getElementById('buildRouteBtn').disabled = count < 2;
         }
 
+        function addToPlannerFromMap(id, name) {
+            if (!requireAuth('Добавить в планер')) return;
+            var date = prompt('Введите дату (ГГГГ-ММ-ДД):', new Date().toISOString().split('T')[0]);
+            if (!date) return;
+            var time = prompt('Введите время:', '12:00');
+            if (!time) return;
+            if (addToPlanner(id, name, date, time)) {
+                alert('✅ "' + name + '" добавлено в планер на ' + formatDateRu(date) + ' ' + time);
+            }
+        }
+
         function addToPlanner(id, name, date, time) {
-            // Check duplicate — same location + date + time
             var timeStr = time || '12:00';
             if (plannerData.find(function(p) { return p.locId === id && p.date === date && p.time === timeStr; })) {
                 alert('"' + name + '" уже запланировано на ' + formatDateRu(date) + ' в ' + timeStr);
@@ -1103,6 +1120,8 @@
             }
             plannerData.push({ date: date, time: timeStr, locId: id, locName: name });
             savePlanner();
+            // Switch to planner tab
+            switchTab('planner');
             return true;
         }
 
@@ -1373,9 +1392,11 @@
         }
 
         function loadMyRoutes() {
+            console.log('loadMyRoutes called');
             fetch('/Route/GetMyRoutes')
-                .then(function(r) { return r.json(); })
+                .then(function(r) { console.log('GetMyRoutes response:', r.status); return r.json(); })
                 .then(function(data) {
+                    console.log('GetMyRoutes data:', data);
                     var routes = data || [];
                     document.getElementById('myRoutesCount').textContent = routes.length;
                     var container = document.getElementById('myRoutesFeed');
@@ -1390,7 +1411,7 @@
                         html += '<small class="text-muted">' + (rt.description || '') + '</small>';
                         html += '<div class="profile-route-meta"><span><i class="fas fa-map-pin"></i> ' + (rt.pointCount || 0) + ' точек</span>';
                         html += '<span><i class="fas fa-calendar"></i> ' + date + '</span></div></div>';
-                        html += '<div class="profile-route-actions"><a href="/Route/Details/' + rt.id + '" class="btn btn-sm btn-outline-dark"><i class="fas fa-eye"></i></a></div></div>';
+                        html += '<div class="profile-route-actions"><button type="button" class="btn btn-sm btn-outline-dark" onclick="openRouteModal(' + rt.id + ')"><i class="fas fa-eye"></i></button></div></div>';
                     });
                     container.innerHTML = html;
                 })
@@ -1415,11 +1436,78 @@
                         html += '<small class="text-muted">' + (rt.description || '') + '</small>';
                         html += '<div class="profile-route-meta"><span><i class="fas fa-map-pin"></i> ' + (rt.pointCount || 0) + ' точек</span>';
                         html += '<span><i class="fas fa-calendar"></i> ' + date + '</span></div></div>';
-                        html += '<div class="profile-route-actions"><a href="/Route/Details/' + rt.id + '" class="btn btn-sm btn-outline-dark"><i class="fas fa-eye"></i></a></div></div>';
+                        html += '<div class="profile-route-actions"><button type="button" class="btn btn-sm btn-outline-dark" onclick="openRouteModal(' + rt.id + ')"><i class="fas fa-eye"></i></button></div></div>';
                     });
                     container.innerHTML = html;
                 })
                 .catch(function() { document.getElementById('publicRoutesFeed').innerHTML = '<div class="text-center py-4 text-muted"><p>Ошибка загрузки</p></div>'; });
+        }
+
+        // ═══ Route Modal ═══
+        function openRouteModal(routeId) {
+            var modal = document.getElementById('routeModal');
+            var content = document.getElementById('routeModalContent');
+            modal.classList.add('open');
+            content.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-dark"></div></div>';
+            fetch('/Route/GetRouteData?id=' + routeId)
+                .then(function(r) { return r.json(); })
+                .then(function(rt) {
+                    if (!rt || rt.error) { content.innerHTML = '<div class="text-center py-4 text-muted"><p>Маршрут не найден</p></div>'; return; }
+                    var date = new Date(rt.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+                    var html = '<div class="modal-detail"><div class="modal-body">';
+                    html += '<div class="d-flex justify-content-between align-items-start mb-3">';
+                    html += '<div><h4 class="modal-title mb-1">' + rt.name + '</h4>';
+                    html += '<small class="text-muted"><i class="fas fa-calendar"></i> ' + date + '</small></div>';
+                    html += '<span class="badge bg-dark"><i class="fas fa-map-pin"></i> ' + (rt.points ? rt.points.length : 0) + ' точек</span></div>';
+                    if (rt.description) html += '<p class="modal-desc">' + rt.description + '</p>';
+                    if (rt.points && rt.points.length > 0) {
+                        html += '<h6 class="mt-3 mb-2"><i class="fas fa-route"></i> Точки маршрута</h6>';
+                        html += '<div class="route-points-list">';
+                        rt.points.forEach(function(p, i) {
+                            html += '<div class="route-point-item"><div class="route-point-num">' + (i + 1) + '</div>';
+                            html += '<div class="route-point-info"><b>' + p.locationName + '</b>';
+                            if (p.locationAddress) html += '<br><small class="text-muted">' + p.locationAddress + '</small>';
+                            if (p.plannedVisitTime) html += '<br><small><i class="fas fa-clock"></i> ' + new Date(p.plannedVisitTime).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'}) + '</small>';
+                            html += '</div></div>';
+                        });
+                        html += '</div>';
+                    }
+                    html += '<div class="modal-actions">';
+                    html += '<a href="/Route/Details/' + rt.id + '" class="btn btn-dark"><i class="fas fa-external-link-alt"></i> Открыть маршрут</a>';
+                    if (isAuthenticated) html += '<button type="button" class="btn btn-outline-dark" onclick="closeRouteModal()"><i class="fas fa-times"></i> Закрыть</button>';
+                    html += '</div></div></div>';
+                    content.innerHTML = html;
+                })
+                .catch(function() { content.innerHTML = '<div class="text-center py-4 text-muted"><p>Ошибка загрузки</p></div>'; });
+        }
+        function closeRouteModal() { document.getElementById('routeModal').classList.remove('open'); }
+
+        // ═══ Build & Optimize Route ═══
+        function buildRouteFromPlanner() {
+            if (plannerData.length < 2) { alert('Добавьте хотя бы 2 точки в планер'); return; }
+            var sorted = plannerData.slice().sort(function(a, b) {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return (a.time || '').localeCompare(b.time || '');
+            });
+            var locationIds = sorted.map(function(p) { return p.locId; });
+            var routeName = prompt('Название маршрута:', 'Мой маршрут');
+            if (!routeName) return;
+            var body = 'name=' + encodeURIComponent(routeName) + '&isPublic=false';
+            locationIds.forEach(function(id) { body += '&locationIds=' + id; });
+            fetch('/Route/CreateAjax', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data && data.id) {
+                        alert('✅ Маршрут "' + data.name + '" создан!');
+                        plannerData = [];
+                        savePlanner();
+                        loadMyRoutes();
+                        switchPlannerTab('myroutes');
+                    } else {
+                        alert('Ошибка при создании маршрута');
+                    }
+                })
+                .catch(function() { alert('Ошибка соединения'); });
         }
 
         // Event listeners

@@ -167,4 +167,43 @@ public class RouteController : Controller
             r.IsPublic
         }));
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetRouteData(int id)
+    {
+        var route = await _routeService.GetByIdAsync(id);
+        if (route == null) return Json(new { error = "not_found" });
+        return Json(new
+        {
+            route.Id,
+            route.Name,
+            route.Description,
+            route.CreatedAt,
+            route.IsPublic,
+            Points = route.Points.Select(p => new
+            {
+                p.LocationId,
+                p.LocationName,
+                p.LocationAddress,
+                p.PlannedVisitTime
+            })
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateAjax(string name, string description, List<int> locationIds, bool isPublic = false)
+    {
+        if (!AccountController.IsAuthenticated(HttpContext)) return Unauthorized();
+        var userId = AccountController.GetUserId(HttpContext)!.Value;
+        var model = new RouteCreateViewModel
+        {
+            Name = name,
+            Description = description ?? "",
+            LocationIds = locationIds ?? new List<int>(),
+            IsPublic = isPublic
+        };
+        var route = await _routeService.CreateAsync(model, userId);
+        return Json(new { id = route.Id, name = route.Name });
+    }
 }

@@ -53,6 +53,7 @@ public static class DbInitializer
         {
             new() { Email = "admin@geektour.ru",  PasswordHash = HashPass("Admin123!"), Name = "Администратор", Role = UserRole.Admin },
             new() { Email = "adm@gmail.com",      PasswordHash = HashPass("123123"),    Name = "Админ",        Role = UserRole.Admin },
+            new() { Email = "part@gmail.com",     PasswordHash = HashPass("123123"),    Name = "Партнёр",      Role = UserRole.Partner, CompanyName = "GameShop", INN = "7712345678", IsVerified = true },
             new() { Email = "partner@geektour.ru", PasswordHash = HashPass("Partner123!"), Name = "Партнёр Иванов", Role = UserRole.Partner, CompanyName = "AnimeCafe LLC", INN = "7712345678", IsVerified = true },
             new() { Email = "tourist@geektour.ru", PasswordHash = HashPass("Tourist123!"), Name = "Турист Петров",  Role = UserRole.Tourist },
             new() { Email = "partner2@geektour.ru", PasswordHash = HashPass("Partner123!"), Name = "Партнёр Сидоров", Role = UserRole.Partner, CompanyName = "ComicShop", INN = "7798765432", IsVerified = true }
