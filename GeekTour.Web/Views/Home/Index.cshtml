@@ -9,12 +9,14 @@
 }
 
 <div class="home-layout">
+    <!-- ═══ Sidebar Toggle Button (always visible on Map tab) ═══ -->
+    <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Скрыть/показать фильтры">
+        <i class="fas fa-chevron-left" id="sidebarToggleIcon"></i>
+    </button>
+
     <!-- ═══ Left Sidebar: Filters (only for Map tab) ═══ -->
     <aside class="home-sidebar tab-map-sidebar" id="homeSidebar">
         <div class="home-sidebar-header">
-            <button type="button" class="btn btn-sm btn-outline-dark sidebar-toggle-btn" onclick="toggleSidebar()" title="Скрыть фильтры">
-                <i class="fas fa-chevron-left" id="sidebarToggleIcon"></i>
-            </button>
             <h5><i class="fas fa-filter"></i> Фильтры</h5>
             <button type="button" class="btn btn-sm btn-outline-dark" id="sidebarResetBtn" onclick="resetAllFilters()" style="display:none;">
                 <i class="fas fa-times"></i> Сбросить
@@ -974,13 +976,16 @@
         var sidebarCollapsed = false;
         function toggleSidebar() {
             var sidebar = document.getElementById('homeSidebar');
+            var toggleBtn = document.getElementById('sidebarToggleBtn');
             var icon = document.getElementById('sidebarToggleIcon');
             sidebarCollapsed = !sidebarCollapsed;
             if (sidebarCollapsed) {
                 sidebar.classList.add('sidebar-collapsed');
+                toggleBtn.classList.add('collapsed');
                 if (icon) icon.classList.replace('fa-chevron-left', 'fa-chevron-right');
             } else {
                 sidebar.classList.remove('sidebar-collapsed');
+                toggleBtn.classList.remove('collapsed');
                 if (icon) icon.classList.replace('fa-chevron-right', 'fa-chevron-left');
             }
         }
