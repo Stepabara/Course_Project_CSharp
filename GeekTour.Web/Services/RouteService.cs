@@ -117,6 +117,29 @@ public class RouteService : IRouteService
         }
 
         await _context.SaveChangesAsync();
+
+        // Calculate total distance
+        var locationIds = model.LocationIds;
+        if (locationIds.Count >= 2)
+        {
+            var locations = await _context.Locations
+                .Where(l => locationIds.Contains(l.Id))
+                .ToListAsync();
+
+            double totalDist = 0;
+            for (var i = 1; i < locationIds.Count; i++)
+            {
+                var prev = locations.FirstOrDefault(l => l.Id == locationIds[i - 1]);
+                var curr = locations.FirstOrDefault(l => l.Id == locationIds[i]);
+                if (prev != null && curr != null)
+                {
+                    totalDist += _optimizer.CalculateDistance(prev.Latitude, prev.Longitude, curr.Latitude, curr.Longitude);
+                }
+            }
+            route.TotalDistanceKm = Math.Round(totalDist, 2);
+            await _context.SaveChangesAsync();
+        }
+
         return route;
     }
 
